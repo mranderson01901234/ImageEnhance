@@ -3,9 +3,6 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-        <meta http-equiv="Pragma" content="no-cache" />
-        <meta http-equiv="Expires" content="0" />
         <title>Opera - AI Image Enhancement</title>
 
         <!-- Google Fonts -->
@@ -18,12 +15,6 @@
         <link rel="stylesheet" href="style.css" />
     </head>
     <body>
-                <!-- Global Loading Indicator -->
-        <div class="global-loading-indicator" id="global-loading-indicator" style="display: none;">
-            <div class="global-spinner"></div>
-            <div class="global-status-text" id="global-status-text">Processing...</div>
-        </div>
-
         <!-- Navigation Header -->
         <header class="navbar">
             <div class="nav-container">
@@ -40,10 +31,8 @@
 
         <!-- Main Content -->
         <main class="main-container">
-            <!-- Demo Section -->
-            <section class="demo-section" id="demo-section">
-                <!-- Image Comparison Slider Section -->
-                <section class="slider-section">
+            <!-- Image Comparison Slider Section -->
+            <section class="slider-section">
                 <div class="image-comparison-container">
                     <div class="comparison-slider" id="comparisonSlider">
                         <!-- Before Image -->
@@ -83,45 +72,6 @@
                             >Before & After shown using our Pro Touch-Up
                             service.</span
                         >
-                    </div>
-                </div>
-                </section>
-            </section>
-
-            <!-- Single Image Section (Hidden initially) -->
-            <section class="single-image-section" id="single-image-section" style="display: none;">
-                <div class="single-image-container">
-                    <div class="uploaded-image-container">
-                        <img id="uploadedImage" src="" alt="Your uploaded image" />
-                        <div class="image-overlay">
-                            <h2>Your Image Ready for Enhancement</h2>
-                            <p>Click "Instant AI" to process with our FP16-optimized SCUNet model</p>
-                        </div>
-                    </div>
-                    
-                    <div class="action-buttons">
-                        <button class="instant-ai-btn" id="instant-ai-btn">Instant AI Enhancement</button>
-                        <button class="try-another-btn" id="try-another-btn">Try Another Image</button>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Final Comparison Section (Hidden initially) -->
-            <section class="final-comparison-section" id="final-comparison-section" style="display: none;">
-                <div class="comparison-container">
-                    <div class="before-after-container">
-                        <div class="before-image">
-                            <h3>Original</h3>
-                            <img id="finalBeforeImage" src="" alt="Original image" />
-                        </div>
-                        <div class="after-image">
-                            <h3>Enhanced</h3>
-                            <img id="finalAfterImage" src="" alt="Enhanced image" />
-                        </div>
-                    </div>
-                    
-                    <div class="download-section">
-                        <button class="download-enhanced-btn" id="download-enhanced-btn">Download Enhanced Image</button>
                     </div>
                 </div>
             </section>
@@ -205,6 +155,6 @@
         </main>
 
         <!-- JavaScript -->
-        <script src="script.js?v=4.0&t=1755825296"></script>
+        <script src="script.js"></script>
     </body>
 </html>

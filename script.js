@@ -24,62 +24,31 @@ class InteractiveImageProcessor {
         this.uploadBtn = document.getElementById('upload-btn');
         this.fileInput = document.getElementById('image-input');
         this.instantAiBtn = document.getElementById('instant-ai-btn');
-        this.tryAnotherBtn = document.getElementById('try-another-btn');
-        this.downloadEnhancedBtn = document.getElementById('download-enhanced-btn');
         this.beforeImg = document.getElementById('beforeImg');
         this.afterImg = document.getElementById('afterImg');
-        this.uploadedImage = document.getElementById('uploadedImage');
-        this.finalBeforeImage = document.getElementById('finalBeforeImage');
-        this.finalAfterImage = document.getElementById('finalAfterImage');
-        this.globalLoadingIndicator = document.getElementById('global-loading-indicator');
-        this.globalStatusText = document.getElementById('global-status-text');
-        this.demoSection = document.getElementById('demo-section');
-        this.singleImageSection = document.getElementById('single-image-section');
-        this.finalComparisonSection = document.getElementById('final-comparison-section');
+        this.loadingIndicator = document.getElementById('loading-indicator');
+        this.statusText = document.getElementById('status-text');
         this.comparisonSlider = null;
         this.userImageUploaded = false;
         this.uploadedFile = null;
         
-        // Replicate deployment configuration
-        this.replicateApiToken = process.env.REPLICATE_API_TOKEN || '';
-        this.deploymentId = 'mranderson01901234/my-scunet2point0';
-        this.modelType = 'real image denoising (FP16 Optimized)'; // Default model type
-        
-        // Available model options for SCUNet
-        this.availableModels = [
-            'real image denoising',
-            'grayscale images-15',
-            'grayscale images-25', 
-            'grayscale images-50',
-            'color images-15',
-            'color images-25',
-            'color images-50'
-        ];
+        // Local SCUNet backend configuration
+        this.backendUrl = 'http://localhost:5000/enhance';
+        this.modelType = 'gan'; // or 'psnr' based on your preference
         
         this.init();
     }
     
     init() {
-        // Initially disable and hide the Instant AI button
-        if (this.instantAiBtn) {
-            this.instantAiBtn.classList.add('disabled');
-            this.instantAiBtn.style.display = 'none';
-        }
+        // Initially disable the Instant AI button
+        this.instantAiBtn.classList.add('disabled');
         
         // Set up event listeners
         this.uploadBtn.addEventListener('click', this.handleUploadClick.bind(this));
         this.fileInput.addEventListener('change', this.handleFileSelection.bind(this));
-        if (this.instantAiBtn) {
-            this.instantAiBtn.addEventListener('click', this.handleInstantAiClick.bind(this));
-        }
-        if (this.tryAnotherBtn) {
-            this.tryAnotherBtn.addEventListener('click', this.resetToDemoView.bind(this));
-        }
-        if (this.downloadEnhancedBtn) {
-            this.downloadEnhancedBtn.addEventListener('click', this.downloadEnhancedImage.bind(this));
-        }
+        this.instantAiBtn.addEventListener('click', this.handleInstantAiClick.bind(this));
         
-        console.log('Interactive Image Processor initialized with Replicate SCUNet API (FP16)');
+        console.log('Interactive Image Processor initialized with local SCUNet backend');
     }
     
     setComparisonSlider(sliderInstance) {
@@ -88,18 +57,11 @@ class InteractiveImageProcessor {
     
     // Handle upload button click - trigger hidden file input
     handleUploadClick() {
-        // If user already has an image and wants to change it, reset to demo view
-        if (this.userImageUploaded) {
-            this.resetToDemoView();
-        }
-        
         console.log('Upload button clicked - triggering file input');
         this.fileInput.click();
         
         // Track upload button interaction
-        if (typeof AnalyticsTracker !== 'undefined') {
-            AnalyticsTracker.trackEvent('upload_button_clicked');
-        }
+        AnalyticsTracker.trackEvent('upload_button_clicked');
     }
     
     // Handle file selection from file dialog
@@ -143,11 +105,8 @@ class InteractiveImageProcessor {
             this.uploadedFile = file;
             
             // Enable the Instant AI button
-            if (this.instantAiBtn) {
-                this.instantAiBtn.classList.remove('disabled');
-                this.instantAiBtn.classList.add('active');
-                this.instantAiBtn.style.display = 'block';
-            }
+            this.instantAiBtn.classList.remove('disabled');
+            this.instantAiBtn.classList.add('active');
             
             // Update upload button text
             this.uploadBtn.textContent = 'Change Image';
@@ -155,12 +114,10 @@ class InteractiveImageProcessor {
             console.log('User image loaded successfully');
             
             // Track successful upload
-            if (typeof AnalyticsTracker !== 'undefined') {
-                AnalyticsTracker.trackEvent('image_uploaded', {
-                    fileSize: file.size,
-                    fileType: file.type
-                });
-            }
+            AnalyticsTracker.trackEvent('image_uploaded', {
+                fileSize: file.size,
+                fileType: file.type
+            });
         };
         
         reader.onerror = () => {
@@ -172,7 +129,7 @@ class InteractiveImageProcessor {
         reader.readAsDataURL(file);
     }
     
-    // Handle Instant AI button click - start Replicate SCUNet processing
+    // Handle Instant AI button click - start local SCUNet processing
     handleInstantAiClick() {
         // Only proceed if user has uploaded an image and button is active
         if (!this.userImageUploaded || this.instantAiBtn.classList.contains('disabled')) {
@@ -180,11 +137,11 @@ class InteractiveImageProcessor {
             return;
         }
         
-        console.log('Starting SCUNet enhancement process with Replicate...');
+        console.log('Starting SCUNet enhancement process with local backend...');
         
         // Show loading indicator with initial status
         this.loadingIndicator.classList.add('show');
-        this.statusText.textContent = 'Processing with SCUNet (FP16)...';
+        this.statusText.textContent = 'Processing with SCUNet...';
         
         // Disable the button during processing
         this.instantAiBtn.classList.add('disabled');
@@ -193,38 +150,49 @@ class InteractiveImageProcessor {
         // Store processing start time for analytics
         this.processingStartTime = Date.now();
         
-        // Start the Replicate SCUNet enhancement
-        this.startReplicateEnhancement();
+        // Start the local SCUNet enhancement
+        this.startLocalEnhancement();
         
         // Track AI processing start
-        if (typeof AnalyticsTracker !== 'undefined') {
-            AnalyticsTracker.trackEvent('ai_enhancement_started');
-        }
+        AnalyticsTracker.trackEvent('ai_enhancement_started');
     }
     
-    // Process image with Replicate SCUNet API
-    async startReplicateEnhancement() {
+    // Process image with local SCUNet backend
+    async startLocalEnhancement() {
         try {
             if (!this.uploadedFile) {
                 throw new Error('No file available for processing');
             }
             
-            console.log('🚀 Sending image to Replicate SCUNet API...');
-            this.statusText.textContent = 'Processing with SCUNet (FP16)...';
+            console.log('🚀 Sending image to local SCUNet backend...');
+            this.statusText.textContent = 'Processing with SCUNet...';
             
-            // Convert image to base64 for Replicate API
-            const base64Image = await this.fileToBase64(this.uploadedFile);
+            // Create FormData to send the image file
+            const formData = new FormData();
+            formData.append('image', this.uploadedFile);
+            formData.append('model_type', this.modelType);
             
-            // Make prediction request to Replicate
-            const prediction = await this.createPrediction(base64Image);
+            // Make the request to local backend
+            const response = await fetch(this.backendUrl, {
+                method: 'POST',
+                body: formData
+            });
             
-            // Poll for completion
-            const result = await this.waitForPrediction(prediction.id);
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Backend processing failed: ${response.status} - ${errorText}`);
+            }
+            
+            // Get the enhanced image blob
+            const enhancedImageBlob = await response.blob();
             
             console.log('✅ SCUNet enhancement completed successfully!');
             this.statusText.textContent = 'Enhancement complete! Loading result...';
             
-            // Load the enhanced image from Replicate
+            // Create object URL for the enhanced image
+            const enhancedImageUrl = URL.createObjectURL(enhancedImageBlob);
+            
+            // Load the enhanced image into the "after" image element
             this.afterImg.onload = () => {
                 console.log('✅ Enhanced image loaded successfully');
                 this.statusText.textContent = 'Enhancement complete!';
@@ -233,15 +201,16 @@ class InteractiveImageProcessor {
                 this.afterImg.style.filter = '';
                 
                 // Track successful AI processing completion
-                if (typeof AnalyticsTracker !== 'undefined') {
-                    AnalyticsTracker.trackEvent('ai_enhancement_completed', {
-                        success: true,
-                        processingTime: Date.now() - this.processingStartTime
-                    });
-                }
+                AnalyticsTracker.trackEvent('ai_enhancement_completed', {
+                    success: true,
+                    processingTime: Date.now() - this.processingStartTime
+                });
                 
                 // Clean up UI state
                 this.cleanupAfterProcessing();
+                
+                // Clean up the object URL
+                URL.revokeObjectURL(enhancedImageUrl);
             };
             
             this.afterImg.onerror = () => {
@@ -249,79 +218,12 @@ class InteractiveImageProcessor {
             };
             
             // Set the source to trigger loading
-            this.afterImg.src = result;
+            this.afterImg.src = enhancedImageUrl;
             
         } catch (error) {
             console.error('💥 Error during SCUNet enhancement:', error);
             this.handleEnhancementError(error);
         }
-    }
-    
-    // Convert file to base64
-    fileToBase64(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => {
-                const base64 = reader.result.split(',')[1];
-                resolve(base64);
-            };
-            reader.onerror = error => reject(error);
-        });
-    }
-    
-    // Create prediction on Replicate
-    async createPrediction(base64Image) {
-        const response = await fetch('/api/replicate/predictions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                deploymentId: this.deploymentId,
-                input: {
-                    image: `data:image/jpeg;base64,${base64Image}`
-                }
-            })
-        });
-        
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(`Failed to create prediction: ${error.error || response.statusText}`);
-        }
-        
-        return await response.json();
-    }
-    
-    // Wait for prediction to complete
-    async waitForPrediction(predictionId) {
-        const maxAttempts = 60; // 5 minutes max
-        let attempts = 0;
-        
-        while (attempts < maxAttempts) {
-            const response = await fetch(`/api/replicate/predictions/${predictionId}`);
-            
-            if (!response.ok) {
-                throw new Error(`Failed to check prediction status: ${response.statusText}`);
-            }
-            
-            const prediction = await response.json();
-            
-            if (prediction.status === 'succeeded') {
-                return prediction.output;
-            } else if (prediction.status === 'failed') {
-                throw new Error(`Prediction failed: ${prediction.error || 'Unknown error'}`);
-            }
-            
-            // Wait 5 seconds before next check
-            await new Promise(resolve => setTimeout(resolve, 5000));
-            attempts++;
-            
-            // Update status
-            this.statusText.textContent = `Processing... (${attempts * 5}s)`;
-        }
-        
-        throw new Error('Prediction timed out after 5 minutes');
     }
     
     // Handle enhancement errors
@@ -335,21 +237,17 @@ class InteractiveImageProcessor {
         this.afterImg.style.filter = 'saturate(1.5) brightness(1.1) contrast(1.15)';
         
         // Track failed AI processing
-        if (typeof AnalyticsTracker !== 'undefined') {
-            AnalyticsTracker.trackEvent('ai_enhancement_failed', {
-                error: error.message,
-                errorType: error.constructor.name
-            });
-        }
+        AnalyticsTracker.trackEvent('ai_enhancement_failed', {
+            error: error.message,
+            errorType: error.constructor.name
+        });
         
         // Show user-friendly error message based on error type
         let userMessage = 'SCUNet enhancement temporarily unavailable. Applied basic enhancement instead.';
         if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-            userMessage = 'Cannot connect to Replicate API. Please check your internet connection.';
-        } else if (error.message.includes('Prediction failed')) {
-            userMessage = 'AI processing failed. Applied basic enhancement instead.';
-        } else if (error.message.includes('timed out')) {
-            userMessage = 'Processing took too long. Applied basic enhancement instead.';
+            userMessage = 'Cannot connect to backend server. Please ensure the SCUNet backend is running.';
+        } else if (error.message.includes('Backend processing failed')) {
+            userMessage = 'Backend processing error. Applied basic enhancement instead.';
         }
         
         alert(userMessage);
@@ -368,120 +266,123 @@ class InteractiveImageProcessor {
         // Re-enable the button (allow multiple enhancements)
         this.instantAiBtn.classList.remove('disabled');
         this.instantAiBtn.classList.add('active');
-    }
-    
-    // Reset to demo view
-    resetToDemoView() {
-        console.log('🔄 Resetting to demo view...');
         
-        // Reset user state
-        this.userImageUploaded = false;
-        this.uploadedFile = null;
-        
-        // Reset button states
-        this.uploadBtn.textContent = 'Upload Image';
-        if (this.instantAiBtn) {
-            this.instantAiBtn.classList.add('disabled');
-            this.instantAiBtn.classList.remove('active');
-            this.instantAiBtn.style.display = 'none';
-        }
-        
-        // Reset images to demo
-        this.beforeImg.src = imagePairs[0].before;
-        this.afterImg.src = imagePairs[0].after;
-        
-        // Remove any filters
-        this.beforeImg.style.filter = '';
-        this.afterImg.style.filter = '';
-        
-        // Restart carousel if available
-        if (this.comparisonSlider) {
-            this.comparisonSlider.startAutoRotation();
-        }
-        
-        // Track reset event
-        if (typeof AnalyticsTracker !== 'undefined') {
-            AnalyticsTracker.trackEvent('reset_to_demo');
-        }
-    }
-    
-    // Download enhanced image
-    downloadEnhancedImage() {
-        if (!this.afterImg.src || this.afterImg.src === this.beforeImg.src) {
-            alert('No enhanced image available to download.');
-            return;
-        }
-        
-        // Create a temporary link element
-        const link = document.createElement('a');
-        link.href = this.afterImg.src;
-        link.download = 'enhanced-image.png';
-        
-        // Trigger download
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        // Track download event
-        if (typeof AnalyticsTracker !== 'undefined') {
-            AnalyticsTracker.trackEvent('image_downloaded');
-        }
+        console.log('✨ Process complete - UI ready for next interaction');
     }
 }
 
-// Analytics Tracker
-class AnalyticsTracker {
-    static trackEvent(eventName, properties = {}) {
-        const event = {
-            event: eventName,
-            timestamp: Date.now(),
-            ...properties
-        };
-        
-        console.log('Analytics Event:', eventName, event);
-        
-        // Here you would typically send to your analytics service
-        // For now, we'll just log to console
-    }
-}
-
-// Comparison Slider functionality
-class ComparisonSlider {
-    constructor(containerId) {
-        this.container = document.getElementById(containerId);
-        this.beforeImage = this.container.querySelector('.before-image img');
-        this.afterImage = this.container.querySelector('.after-image img');
-        this.divider = this.container.querySelector('.divider');
-        this.isDragging = false;
-        this.autoRotationInterval = null;
+// Enhanced Image Comparison Slider with upload integration
+class ImageComparisonSlider {
+    constructor() {
         this.currentImageIndex = 0;
+        this.isDragging = false;
+        this.sliderPosition = 50; // percentage
+        this.autoRotationInterval = null;
+        this.isAutoRotationActive = true;
+        
+        // Get DOM elements
+        this.slider = document.getElementById('comparisonSlider');
+        this.divider = document.getElementById('divider');
+        this.beforeImg = document.getElementById('beforeImg');
+        this.afterImg = document.getElementById('afterImg');
+        this.afterContainer = this.afterImg.parentElement;
         
         this.init();
     }
     
     init() {
-        // Set initial images
-        this.updateImages(0);
-        
-        // Set up event listeners
-        this.divider.addEventListener('mousedown', this.startDragging.bind(this));
-        document.addEventListener('mousemove', this.drag.bind(this));
-        document.addEventListener('mouseup', this.stopDragging.bind(this));
-        
-        // Touch events for mobile
-        this.divider.addEventListener('touchstart', this.startDragging.bind(this));
-        document.addEventListener('touchmove', this.drag.bind(this));
-        document.addEventListener('touchend', this.stopDragging.bind(this));
-        
-        // Start auto-rotation
+        this.loadImagePair(0);
+        this.setupEventListeners();
         this.startAutoRotation();
-        
-        console.log('Comparison Slider initialized');
     }
     
-    startDragging(e) {
-        this.isDragging = true;
+    // Stop auto rotation when user uploads image
+    stopAutoRotation() {
+        if (this.autoRotationInterval) {
+            clearInterval(this.autoRotationInterval);
+            this.autoRotationInterval = null;
+            this.isAutoRotationActive = false;
+            console.log('Auto rotation stopped - user image uploaded');
+        }
+    }
+    
+    // Restart auto rotation (if needed)
+    startAutoRotation() {
+        if (!this.isAutoRotationActive) return;
+        
+        // Auto-rotate images every 6 seconds
+        this.autoRotationInterval = setInterval(() => {
+            if (!this.isDragging && this.isAutoRotationActive) {
+                const nextIndex = (this.currentImageIndex + 1) % imagePairs.length;
+                this.loadImagePair(nextIndex);
+            }
+        }, 6000);
+    }
+    
+    loadImagePair(index) {
+        if (index >= imagePairs.length) index = 0;
+        
+        const pair = imagePairs[index];
+        
+        // Add transition classes
+        this.beforeImg.classList.add('fade-transition');
+        this.afterImg.classList.add('fade-transition');
+        
+        // Fade out
+        this.beforeImg.classList.add('fade-out');
+        this.afterImg.classList.add('fade-out');
+        
+        setTimeout(() => {
+            // Load new images
+            this.beforeImg.src = pair.before;
+            this.afterImg.src = pair.after;
+            
+            // Apply filter to before image to simulate original quality
+            this.beforeImg.style.filter = 'brightness(0.8) contrast(0.9) saturate(0.7)';
+            
+            // Enhanced styling for after image
+            this.afterImg.style.filter = 'brightness(1.1) contrast(1.15) saturate(1.3) sharpen(1.2)';
+            
+            // Fade in
+            this.beforeImg.classList.remove('fade-out');
+            this.afterImg.classList.remove('fade-out');
+            this.beforeImg.classList.add('fade-in');
+            this.afterImg.classList.add('fade-in');
+            
+            setTimeout(() => {
+                // Remove transition classes after animation
+                this.beforeImg.classList.remove('fade-transition', 'fade-in');
+                this.afterImg.classList.remove('fade-transition', 'fade-in');
+            }, 500);
+        }, 250);
+        
+        this.currentImageIndex = index;
+    }
+    
+    setupEventListeners() {
+        // Mouse events for dragging
+        this.divider.addEventListener('mousedown', this.startDrag.bind(this));
+        document.addEventListener('mousemove', this.drag.bind(this));
+        document.addEventListener('mouseup', this.endDrag.bind(this));
+        
+        // Touch events for mobile
+        this.divider.addEventListener('touchstart', this.startDrag.bind(this), { passive: false });
+        document.addEventListener('touchmove', this.drag.bind(this), { passive: false });
+        document.addEventListener('touchend', this.endDrag.bind(this));
+        
+        // Click events on slider area
+        this.slider.addEventListener('click', this.handleClick.bind(this));
+        
+        // Prevent image dragging
+        this.beforeImg.addEventListener('dragstart', (e) => e.preventDefault());
+        this.afterImg.addEventListener('dragstart', (e) => e.preventDefault());
+    }
+    
+    startDrag(e) {
         e.preventDefault();
+        this.isDragging = true;
+        this.slider.style.cursor = 'grabbing';
+        document.body.style.userSelect = 'none';
     }
     
     drag(e) {
@@ -489,70 +390,151 @@ class ComparisonSlider {
         
         e.preventDefault();
         
-        const rect = this.container.getBoundingClientRect();
-        const x = (e.type === 'mousemove' ? e.clientX : e.touches[0].clientX) - rect.left;
-        const percentage = Math.max(0, Math.min(100, (x / rect.width) * 100));
+        const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+        const rect = this.slider.getBoundingClientRect();
+        const position = ((clientX - rect.left) / rect.width) * 100;
         
-        this.divider.style.left = percentage + '%';
-        this.afterImage.style.clipPath = `inset(0 ${100 - percentage}% 0 0)`;
+        this.updateSliderPosition(Math.max(0, Math.min(100, position)));
     }
     
-    stopDragging() {
+    endDrag() {
         this.isDragging = false;
+        this.slider.style.cursor = 'grab';
+        document.body.style.userSelect = '';
     }
     
-    updateImages(index) {
-        const pair = imagePairs[index];
-        this.beforeImage.src = pair.before;
-        this.afterImage.src = pair.after;
-        this.currentImageIndex = index;
+    handleClick(e) {
+        if (this.isDragging) return;
+        
+        const rect = this.slider.getBoundingClientRect();
+        const position = ((e.clientX - rect.left) / rect.width) * 100;
+        this.updateSliderPosition(Math.max(0, Math.min(100, position)));
     }
     
-    startAutoRotation() {
-        this.autoRotationInterval = setInterval(() => {
-            this.currentImageIndex = (this.currentImageIndex + 1) % imagePairs.length;
-            this.updateImages(this.currentImageIndex);
-        }, 5000); // Change every 5 seconds
-    }
-    
-    stopAutoRotation() {
-        if (this.autoRotationInterval) {
-            clearInterval(this.autoRotationInterval);
-            this.autoRotationInterval = null;
-            console.log('Auto rotation stopped - user image uploaded');
-        }
-    }
-    
-    nextImage() {
-        this.currentImageIndex = (this.currentImageIndex + 1) % imagePairs.length;
-        this.updateImages(this.currentImageIndex);
-    }
-    
-    previousImage() {
-        this.currentImageIndex = (this.currentImageIndex - 1 + imagePairs.length) % imagePairs.length;
-        this.updateImages(this.currentImageIndex);
+    updateSliderPosition(position) {
+        this.sliderPosition = position;
+        
+        // Update divider position
+        this.divider.style.left = `${position}%`;
+        
+        // Update after image clip path
+        this.afterContainer.style.clipPath = `inset(0 ${100 - position}% 0 0)`;
     }
 }
 
-// Initialize everything when DOM is loaded
+// Navigation functionality
+class NavigationHandler {
+    constructor() {
+        this.navLinks = document.querySelectorAll('.nav-link');
+        this.init();
+    }
+    
+    init() {
+        this.navLinks.forEach(link => {
+            link.addEventListener('click', this.handleNavClick.bind(this));
+        });
+    }
+    
+    handleNavClick(e) {
+        e.preventDefault();
+        
+        // Remove active class from all links
+        this.navLinks.forEach(link => link.classList.remove('active'));
+        
+        // Add active class to clicked link
+        e.target.classList.add('active');
+        
+        // In a real application, this would handle routing
+        console.log('Navigation clicked:', e.target.textContent);
+    }
+}
+
+// Performance optimization: Lazy load images
+class ImageLoader {
+    static preloadImages() {
+        imagePairs.forEach((pair, index) => {
+            setTimeout(() => {
+                const beforeImg = new Image();
+                const afterImg = new Image();
+                
+                beforeImg.src = pair.before;
+                afterImg.src = pair.after;
+            }, index * 100);
+        });
+    }
+}
+
+// Analytics and tracking (placeholder for real implementation)
+class AnalyticsTracker {
+    static trackEvent(eventName, data = {}) {
+        // In a real application, this would send data to analytics service
+        console.log('Analytics Event:', eventName, data);
+    }
+    
+    static trackPageView() {
+        this.trackEvent('page_view', {
+            page: 'landing_page',
+            timestamp: Date.now(),
+            userAgent: navigator.userAgent
+        });
+    }
+}
+
+// Initialize application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     console.log('AI Image Enhancer Landing Page - Initializing...');
     
-    // Initialize comparison slider
-    const slider = new ComparisonSlider('comparisonSlider');
+    // Initialize all components
+    const comparisonSlider = new ImageComparisonSlider();
+    const interactiveProcessor = new InteractiveImageProcessor();
+    new NavigationHandler();
     
-    // Initialize interactive image processor
-    const processor = new InteractiveImageProcessor();
+    // Connect the interactive processor with the comparison slider
+    interactiveProcessor.setComparisonSlider(comparisonSlider);
     
-    // Connect the slider to the processor
-    processor.setComparisonSlider(slider);
+    // Preload images for smooth transitions
+    ImageLoader.preloadImages();
     
     console.log('Application initialized successfully');
     
     // Track page view
-    AnalyticsTracker.trackEvent('page_view', {
-        page: 'landing_page',
-        timestamp: Date.now(),
-        userAgent: navigator.userAgent
-    });
+    AnalyticsTracker.trackPageView();
 });
+
+// Handle window resize for responsive behavior
+window.addEventListener('resize', () => {
+    // Reset slider position on resize to prevent layout issues
+    const slider = document.getElementById('comparisonSlider');
+    if (slider) {
+        const divider = document.getElementById('divider');
+        const afterContainer = document.querySelector('.after-image');
+        
+        if (divider && afterContainer) {
+            divider.style.left = '50%';
+            afterContainer.style.clipPath = 'inset(0 50% 0 0)';
+        }
+    }
+});
+
+// Smooth scrolling for better UX (if needed for mobile)
+document.addEventListener('touchmove', (e) => {
+    // Only prevent default on the comparison slider area
+    const slider = document.getElementById('comparisonSlider');
+    if (slider && slider.contains(e.target)) {
+        e.preventDefault();
+    }
+}, { passive: false });
+
+// Error handling for image loading
+document.addEventListener('error', (e) => {
+    if (e.target.tagName === 'IMG') {
+        console.warn('Image failed to load:', e.target.src);
+        
+        // Fallback to a placeholder or retry loading
+        if (e.target.src.includes('pixabay')) {
+            // In case of API issues, use a solid color placeholder
+            e.target.style.backgroundColor = '#333';
+            e.target.style.minHeight = '400px';
+        }
+    }
+}, true);
