@@ -12,7 +12,7 @@ REPLICATE_API_URL = 'https://api.replicate.com/v1'
 # Server Configuration
 PORT = int(os.getenv('PORT', 5001))
 HOST = os.getenv('HOST', '0.0.0.0')
-DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
+DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
 # Model Configuration
 MODEL_CONFIG = {

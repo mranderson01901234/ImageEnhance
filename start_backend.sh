@@ -10,7 +10,7 @@ echo "🚀 Starting AI Image Enhancement Backend..."
 # export REPLICATE_API_TOKEN="your_token_here"
 export PORT=5001
 export HOST="0.0.0.0"
-export DEBUG="True"
+export DEBUG="False"
 
 echo "✅ Environment variables set:"
 echo "   - REPLICATE_API_TOKEN: [CONFIGURED]"
