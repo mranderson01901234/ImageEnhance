@@ -24,10 +24,18 @@ class InteractiveImageProcessor {
         this.uploadBtn = document.getElementById('upload-btn');
         this.fileInput = document.getElementById('image-input');
         this.instantAiBtn = document.getElementById('instant-ai-btn');
+        this.tryAnotherBtn = document.getElementById('try-another-btn');
+        this.downloadEnhancedBtn = document.getElementById('download-enhanced-btn');
         this.beforeImg = document.getElementById('beforeImg');
         this.afterImg = document.getElementById('afterImg');
-        this.loadingIndicator = document.getElementById('loading-indicator');
-        this.statusText = document.getElementById('status-text');
+        this.uploadedImage = document.getElementById('uploadedImage');
+        this.finalBeforeImage = document.getElementById('finalBeforeImage');
+        this.finalAfterImage = document.getElementById('finalAfterImage');
+        this.globalLoadingIndicator = document.getElementById('global-loading-indicator');
+        this.globalStatusText = document.getElementById('global-status-text');
+        this.demoSection = document.getElementById('demo-section');
+        this.singleImageSection = document.getElementById('single-image-section');
+        this.finalComparisonSection = document.getElementById('final-comparison-section');
         this.comparisonSlider = null;
         this.userImageUploaded = false;
         this.uploadedFile = null;
@@ -52,13 +60,24 @@ class InteractiveImageProcessor {
     }
     
     init() {
-        // Initially disable the Instant AI button
-        this.instantAiBtn.classList.add('disabled');
+        // Initially disable and hide the Instant AI button
+        if (this.instantAiBtn) {
+            this.instantAiBtn.classList.add('disabled');
+            this.instantAiBtn.style.display = 'none';
+        }
         
         // Set up event listeners
         this.uploadBtn.addEventListener('click', this.handleUploadClick.bind(this));
         this.fileInput.addEventListener('change', this.handleFileSelection.bind(this));
-        this.instantAiBtn.addEventListener('click', this.handleInstantAiClick.bind(this));
+        if (this.instantAiBtn) {
+            this.instantAiBtn.addEventListener('click', this.handleInstantAiClick.bind(this));
+        }
+        if (this.tryAnotherBtn) {
+            this.tryAnotherBtn.addEventListener('click', this.resetToDemoView.bind(this));
+        }
+        if (this.downloadEnhancedBtn) {
+            this.downloadEnhancedBtn.addEventListener('click', this.downloadEnhancedImage.bind(this));
+        }
         
         console.log('Interactive Image Processor initialized with Replicate SCUNet API (FP16)');
     }
@@ -69,11 +88,18 @@ class InteractiveImageProcessor {
     
     // Handle upload button click - trigger hidden file input
     handleUploadClick() {
+        // If user already has an image and wants to change it, reset to demo view
+        if (this.userImageUploaded) {
+            this.resetToDemoView();
+        }
+        
         console.log('Upload button clicked - triggering file input');
         this.fileInput.click();
         
         // Track upload button interaction
-        AnalyticsTracker.trackEvent('upload_button_clicked');
+        if (typeof AnalyticsTracker !== 'undefined') {
+            AnalyticsTracker.trackEvent('upload_button_clicked');
+        }
     }
     
     // Handle file selection from file dialog
@@ -117,8 +143,11 @@ class InteractiveImageProcessor {
             this.uploadedFile = file;
             
             // Enable the Instant AI button
-            this.instantAiBtn.classList.remove('disabled');
-            this.instantAiBtn.classList.add('active');
+            if (this.instantAiBtn) {
+                this.instantAiBtn.classList.remove('disabled');
+                this.instantAiBtn.classList.add('active');
+                this.instantAiBtn.style.display = 'block';
+            }
             
             // Update upload button text
             this.uploadBtn.textContent = 'Change Image';
@@ -126,10 +155,12 @@ class InteractiveImageProcessor {
             console.log('User image loaded successfully');
             
             // Track successful upload
-            AnalyticsTracker.trackEvent('image_uploaded', {
-                fileSize: file.size,
-                fileType: file.type
-            });
+            if (typeof AnalyticsTracker !== 'undefined') {
+                AnalyticsTracker.trackEvent('image_uploaded', {
+                    fileSize: file.size,
+                    fileType: file.type
+                });
+            }
         };
         
         reader.onerror = () => {
@@ -166,7 +197,9 @@ class InteractiveImageProcessor {
         this.startReplicateEnhancement();
         
         // Track AI processing start
-        AnalyticsTracker.trackEvent('ai_enhancement_started');
+        if (typeof AnalyticsTracker !== 'undefined') {
+            AnalyticsTracker.trackEvent('ai_enhancement_started');
+        }
     }
     
     // Process image with Replicate SCUNet API
@@ -200,10 +233,12 @@ class InteractiveImageProcessor {
                 this.afterImg.style.filter = '';
                 
                 // Track successful AI processing completion
-                AnalyticsTracker.trackEvent('ai_enhancement_completed', {
-                    success: true,
-                    processingTime: Date.now() - this.processingStartTime
-                });
+                if (typeof AnalyticsTracker !== 'undefined') {
+                    AnalyticsTracker.trackEvent('ai_enhancement_completed', {
+                        success: true,
+                        processingTime: Date.now() - this.processingStartTime
+                    });
+                }
                 
                 // Clean up UI state
                 this.cleanupAfterProcessing();
@@ -300,10 +335,12 @@ class InteractiveImageProcessor {
         this.afterImg.style.filter = 'saturate(1.5) brightness(1.1) contrast(1.15)';
         
         // Track failed AI processing
-        AnalyticsTracker.trackEvent('ai_enhancement_failed', {
-            error: error.message,
-            errorType: error.constructor.name
-        });
+        if (typeof AnalyticsTracker !== 'undefined') {
+            AnalyticsTracker.trackEvent('ai_enhancement_failed', {
+                error: error.message,
+                errorType: error.constructor.name
+            });
+        }
         
         // Show user-friendly error message based on error type
         let userMessage = 'SCUNet enhancement temporarily unavailable. Applied basic enhancement instead.';
@@ -331,123 +368,120 @@ class InteractiveImageProcessor {
         // Re-enable the button (allow multiple enhancements)
         this.instantAiBtn.classList.remove('disabled');
         this.instantAiBtn.classList.add('active');
+    }
+    
+    // Reset to demo view
+    resetToDemoView() {
+        console.log('🔄 Resetting to demo view...');
         
-        console.log('✨ Process complete - UI ready for next interaction');
+        // Reset user state
+        this.userImageUploaded = false;
+        this.uploadedFile = null;
+        
+        // Reset button states
+        this.uploadBtn.textContent = 'Upload Image';
+        if (this.instantAiBtn) {
+            this.instantAiBtn.classList.add('disabled');
+            this.instantAiBtn.classList.remove('active');
+            this.instantAiBtn.style.display = 'none';
+        }
+        
+        // Reset images to demo
+        this.beforeImg.src = imagePairs[0].before;
+        this.afterImg.src = imagePairs[0].after;
+        
+        // Remove any filters
+        this.beforeImg.style.filter = '';
+        this.afterImg.style.filter = '';
+        
+        // Restart carousel if available
+        if (this.comparisonSlider) {
+            this.comparisonSlider.startAutoRotation();
+        }
+        
+        // Track reset event
+        if (typeof AnalyticsTracker !== 'undefined') {
+            AnalyticsTracker.trackEvent('reset_to_demo');
+        }
+    }
+    
+    // Download enhanced image
+    downloadEnhancedImage() {
+        if (!this.afterImg.src || this.afterImg.src === this.beforeImg.src) {
+            alert('No enhanced image available to download.');
+            return;
+        }
+        
+        // Create a temporary link element
+        const link = document.createElement('a');
+        link.href = this.afterImg.src;
+        link.download = 'enhanced-image.png';
+        
+        // Trigger download
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Track download event
+        if (typeof AnalyticsTracker !== 'undefined') {
+            AnalyticsTracker.trackEvent('image_downloaded');
+        }
     }
 }
 
-// Enhanced Image Comparison Slider with upload integration
-class ImageComparisonSlider {
-    constructor() {
-        this.currentImageIndex = 0;
-        this.isDragging = false;
-        this.sliderPosition = 50; // percentage
-        this.autoRotationInterval = null;
-        this.isAutoRotationActive = true;
+// Analytics Tracker
+class AnalyticsTracker {
+    static trackEvent(eventName, properties = {}) {
+        const event = {
+            event: eventName,
+            timestamp: Date.now(),
+            ...properties
+        };
         
-        // Get DOM elements
-        this.slider = document.getElementById('comparisonSlider');
-        this.divider = document.getElementById('divider');
-        this.beforeImg = document.getElementById('beforeImg');
-        this.afterImg = document.getElementById('afterImg');
-        this.afterContainer = this.afterImg.parentElement;
+        console.log('Analytics Event:', eventName, event);
+        
+        // Here you would typically send to your analytics service
+        // For now, we'll just log to console
+    }
+}
+
+// Comparison Slider functionality
+class ComparisonSlider {
+    constructor(containerId) {
+        this.container = document.getElementById(containerId);
+        this.beforeImage = this.container.querySelector('.before-image img');
+        this.afterImage = this.container.querySelector('.after-image img');
+        this.divider = this.container.querySelector('.divider');
+        this.isDragging = false;
+        this.autoRotationInterval = null;
+        this.currentImageIndex = 0;
         
         this.init();
     }
     
     init() {
-        this.loadImagePair(0);
-        this.setupEventListeners();
-        this.startAutoRotation();
-    }
-    
-    // Stop auto rotation when user uploads image
-    stopAutoRotation() {
-        if (this.autoRotationInterval) {
-            clearInterval(this.autoRotationInterval);
-            this.autoRotationInterval = null;
-            this.isAutoRotationActive = false;
-            console.log('Auto rotation stopped - user image uploaded');
-        }
-    }
-    
-    // Restart auto rotation (if needed)
-    startAutoRotation() {
-        if (!this.isAutoRotationActive) return;
+        // Set initial images
+        this.updateImages(0);
         
-        // Auto-rotate images every 6 seconds
-        this.autoRotationInterval = setInterval(() => {
-            if (!this.isDragging && this.isAutoRotationActive) {
-                const nextIndex = (this.currentImageIndex + 1) % imagePairs.length;
-                this.loadImagePair(nextIndex);
-            }
-        }, 6000);
-    }
-    
-    loadImagePair(index) {
-        if (index >= imagePairs.length) index = 0;
-        
-        const pair = imagePairs[index];
-        
-        // Add transition classes
-        this.beforeImg.classList.add('fade-transition');
-        this.afterImg.classList.add('fade-transition');
-        
-        // Fade out
-        this.beforeImg.classList.add('fade-out');
-        this.afterImg.classList.add('fade-out');
-        
-        setTimeout(() => {
-            // Load new images
-            this.beforeImg.src = pair.before;
-            this.afterImg.src = pair.after;
-            
-            // Apply filter to before image to simulate original quality
-            this.beforeImg.style.filter = 'brightness(0.8) contrast(0.9) saturate(0.7)';
-            
-            // Enhanced styling for after image
-            this.afterImg.style.filter = 'brightness(1.1) contrast(1.15) saturate(1.3) sharpen(1.2)';
-            
-            // Fade in
-            this.beforeImg.classList.remove('fade-out');
-            this.afterImg.classList.remove('fade-out');
-            this.beforeImg.classList.add('fade-in');
-            this.afterImg.classList.add('fade-in');
-            
-            setTimeout(() => {
-                // Remove transition classes after animation
-                this.beforeImg.classList.remove('fade-transition', 'fade-in');
-                this.afterImg.classList.remove('fade-transition', 'fade-in');
-            }, 500);
-        }, 250);
-        
-        this.currentImageIndex = index;
-    }
-    
-    setupEventListeners() {
-        // Mouse events for dragging
-        this.divider.addEventListener('mousedown', this.startDrag.bind(this));
+        // Set up event listeners
+        this.divider.addEventListener('mousedown', this.startDragging.bind(this));
         document.addEventListener('mousemove', this.drag.bind(this));
-        document.addEventListener('mouseup', this.endDrag.bind(this));
+        document.addEventListener('mouseup', this.stopDragging.bind(this));
         
         // Touch events for mobile
-        this.divider.addEventListener('touchstart', this.startDrag.bind(this), { passive: false });
-        document.addEventListener('touchmove', this.drag.bind(this), { passive: false });
-        document.addEventListener('touchend', this.endDrag.bind(this));
+        this.divider.addEventListener('touchstart', this.startDragging.bind(this));
+        document.addEventListener('touchmove', this.drag.bind(this));
+        document.addEventListener('touchend', this.stopDragging.bind(this));
         
-        // Click events on slider area
-        this.slider.addEventListener('click', this.handleClick.bind(this));
+        // Start auto-rotation
+        this.startAutoRotation();
         
-        // Prevent image dragging
-        this.beforeImg.addEventListener('dragstart', (e) => e.preventDefault());
-        this.afterImg.addEventListener('dragstart', (e) => e.preventDefault());
+        console.log('Comparison Slider initialized');
     }
     
-    startDrag(e) {
-        e.preventDefault();
+    startDragging(e) {
         this.isDragging = true;
-        this.slider.style.cursor = 'grabbing';
-        document.body.style.userSelect = 'none';
+        e.preventDefault();
     }
     
     drag(e) {
@@ -455,151 +489,70 @@ class ImageComparisonSlider {
         
         e.preventDefault();
         
-        const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
-        const rect = this.slider.getBoundingClientRect();
-        const position = ((clientX - rect.left) / rect.width) * 100;
+        const rect = this.container.getBoundingClientRect();
+        const x = (e.type === 'mousemove' ? e.clientX : e.touches[0].clientX) - rect.left;
+        const percentage = Math.max(0, Math.min(100, (x / rect.width) * 100));
         
-        this.updateSliderPosition(Math.max(0, Math.min(100, position)));
+        this.divider.style.left = percentage + '%';
+        this.afterImage.style.clipPath = `inset(0 ${100 - percentage}% 0 0)`;
     }
     
-    endDrag() {
+    stopDragging() {
         this.isDragging = false;
-        this.slider.style.cursor = 'grab';
-        document.body.style.userSelect = '';
     }
     
-    handleClick(e) {
-        if (this.isDragging) return;
-        
-        const rect = this.slider.getBoundingClientRect();
-        const position = ((e.clientX - rect.left) / rect.width) * 100;
-        this.updateSliderPosition(Math.max(0, Math.min(100, position)));
+    updateImages(index) {
+        const pair = imagePairs[index];
+        this.beforeImage.src = pair.before;
+        this.afterImage.src = pair.after;
+        this.currentImageIndex = index;
     }
     
-    updateSliderPosition(position) {
-        this.sliderPosition = position;
-        
-        // Update divider position
-        this.divider.style.left = `${position}%`;
-        
-        // Update after image clip path
-        this.afterContainer.style.clipPath = `inset(0 ${100 - position}% 0 0)`;
+    startAutoRotation() {
+        this.autoRotationInterval = setInterval(() => {
+            this.currentImageIndex = (this.currentImageIndex + 1) % imagePairs.length;
+            this.updateImages(this.currentImageIndex);
+        }, 5000); // Change every 5 seconds
+    }
+    
+    stopAutoRotation() {
+        if (this.autoRotationInterval) {
+            clearInterval(this.autoRotationInterval);
+            this.autoRotationInterval = null;
+            console.log('Auto rotation stopped - user image uploaded');
+        }
+    }
+    
+    nextImage() {
+        this.currentImageIndex = (this.currentImageIndex + 1) % imagePairs.length;
+        this.updateImages(this.currentImageIndex);
+    }
+    
+    previousImage() {
+        this.currentImageIndex = (this.currentImageIndex - 1 + imagePairs.length) % imagePairs.length;
+        this.updateImages(this.currentImageIndex);
     }
 }
 
-// Navigation functionality
-class NavigationHandler {
-    constructor() {
-        this.navLinks = document.querySelectorAll('.nav-link');
-        this.init();
-    }
-    
-    init() {
-        this.navLinks.forEach(link => {
-            link.addEventListener('click', this.handleNavClick.bind(this));
-        });
-    }
-    
-    handleNavClick(e) {
-        e.preventDefault();
-        
-        // Remove active class from all links
-        this.navLinks.forEach(link => link.classList.remove('active'));
-        
-        // Add active class to clicked link
-        e.target.classList.add('active');
-        
-        // In a real application, this would handle routing
-        console.log('Navigation clicked:', e.target.textContent);
-    }
-}
-
-// Performance optimization: Lazy load images
-class ImageLoader {
-    static preloadImages() {
-        imagePairs.forEach((pair, index) => {
-            setTimeout(() => {
-                const beforeImg = new Image();
-                const afterImg = new Image();
-                
-                beforeImg.src = pair.before;
-                afterImg.src = pair.after;
-            }, index * 100);
-        });
-    }
-}
-
-// Analytics and tracking (placeholder for real implementation)
-class AnalyticsTracker {
-    static trackEvent(eventName, data = {}) {
-        // In a real application, this would send data to analytics service
-        console.log('Analytics Event:', eventName, data);
-    }
-    
-    static trackPageView() {
-        this.trackEvent('page_view', {
-            page: 'landing_page',
-            timestamp: Date.now(),
-            userAgent: navigator.userAgent
-        });
-    }
-}
-
-// Initialize application when DOM is loaded
+// Initialize everything when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     console.log('AI Image Enhancer Landing Page - Initializing...');
     
-    // Initialize all components
-    const comparisonSlider = new ImageComparisonSlider();
-    const interactiveProcessor = new InteractiveImageProcessor();
-    new NavigationHandler();
+    // Initialize comparison slider
+    const slider = new ComparisonSlider('comparisonSlider');
     
-    // Connect the interactive processor with the comparison slider
-    interactiveProcessor.setComparisonSlider(comparisonSlider);
+    // Initialize interactive image processor
+    const processor = new InteractiveImageProcessor();
     
-    // Preload images for smooth transitions
-    ImageLoader.preloadImages();
+    // Connect the slider to the processor
+    processor.setComparisonSlider(slider);
     
     console.log('Application initialized successfully');
     
     // Track page view
-    AnalyticsTracker.trackPageView();
+    AnalyticsTracker.trackEvent('page_view', {
+        page: 'landing_page',
+        timestamp: Date.now(),
+        userAgent: navigator.userAgent
+    });
 });
-
-// Handle window resize for responsive behavior
-window.addEventListener('resize', () => {
-    // Reset slider position on resize to prevent layout issues
-    const slider = document.getElementById('comparisonSlider');
-    if (slider) {
-        const divider = document.getElementById('divider');
-        const afterContainer = document.querySelector('.after-image');
-        
-        if (divider && afterContainer) {
-            divider.style.left = '50%';
-            afterContainer.style.clipPath = 'inset(0 50% 0 0)';
-        }
-    }
-});
-
-// Smooth scrolling for better UX (if needed for mobile)
-document.addEventListener('touchmove', (e) => {
-    // Only prevent default on the comparison slider area
-    const slider = document.getElementById('comparisonSlider');
-    if (slider && slider.contains(e.target)) {
-        e.preventDefault();
-    }
-}, { passive: false });
-
-// Error handling for image loading
-document.addEventListener('error', (e) => {
-    if (e.target.tagName === 'IMG') {
-        console.warn('Image failed to load:', e.target.src);
-        
-        // Fallback to a placeholder or retry loading
-        if (e.target.src.includes('pixabay')) {
-            // In case of API issues, use a solid color placeholder
-            e.target.style.backgroundColor = '#333';
-            e.target.style.minHeight = '400px';
-        }
-    }
-}, true);
