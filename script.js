@@ -24,31 +24,67 @@ class InteractiveImageProcessor {
         this.uploadBtn = document.getElementById('upload-btn');
         this.fileInput = document.getElementById('image-input');
         this.instantAiBtn = document.getElementById('instant-ai-btn');
+        this.tryAnotherBtn = document.getElementById('try-another-btn');
+        this.downloadEnhancedBtn = document.getElementById('download-enhanced-btn');
         this.beforeImg = document.getElementById('beforeImg');
         this.afterImg = document.getElementById('afterImg');
-        this.loadingIndicator = document.getElementById('loading-indicator');
-        this.statusText = document.getElementById('status-text');
+        this.uploadedImage = document.getElementById('uploadedImage');
+        this.finalBeforeImage = document.getElementById('finalBeforeImage');
+        this.finalAfterImage = document.getElementById('finalAfterImage');
+        this.processingOverlay = document.getElementById('processing-overlay');
+        this.processingStatus = document.getElementById('processing-status');
+        this.globalLoadingIndicator = document.getElementById('global-loading-indicator');
+        this.globalStatusText = document.getElementById('global-status-text');
+        this.demoSection = document.getElementById('demo-section');
+        this.singleImageSection = document.getElementById('single-image-section');
+        this.finalComparisonSection = document.getElementById('final-comparison-section');
         this.comparisonSlider = null;
         this.userImageUploaded = false;
         this.uploadedFile = null;
         
-        // Local SCUNet backend configuration
-        this.backendUrl = 'http://localhost:5000/enhance';
-        this.modelType = 'gan'; // or 'psnr' based on your preference
+        // Replicate deployment configuration
+        this.replicateApiToken = ''; // Will be loaded from environment/server
+        this.deploymentId = 'mranderson01901234/my-scunet2point0';
+        this.modelType = 'real image denoising'; // Default model type
+        
+        // Available model options for SCUNet
+        this.availableModels = [
+            'real image denoising',
+            'grayscale images-15',
+            'grayscale images-25', 
+            'grayscale images-50',
+            'color images-15',
+            'color images-25',
+            'color images-50'
+        ];
         
         this.init();
+        
+        // Ensure processing overlay is hidden on initialization
+        this.forceHideProcessingOverlay();
     }
     
     init() {
-        // Initially disable the Instant AI button
-        this.instantAiBtn.classList.add('disabled');
+        // Initially disable and hide the Instant AI button
+        if (this.instantAiBtn) {
+            this.instantAiBtn.classList.add('disabled');
+            this.instantAiBtn.style.display = 'none';
+        }
         
         // Set up event listeners
         this.uploadBtn.addEventListener('click', this.handleUploadClick.bind(this));
         this.fileInput.addEventListener('change', this.handleFileSelection.bind(this));
-        this.instantAiBtn.addEventListener('click', this.handleInstantAiClick.bind(this));
+        if (this.instantAiBtn) {
+            this.instantAiBtn.addEventListener('click', this.handleInstantAiClick.bind(this));
+        }
+        if (this.tryAnotherBtn) {
+            this.tryAnotherBtn.addEventListener('click', this.resetToDemoView.bind(this));
+        }
+        if (this.downloadEnhancedBtn) {
+            this.downloadEnhancedBtn.addEventListener('click', this.downloadEnhancedImage.bind(this));
+        }
         
-        console.log('Interactive Image Processor initialized with local SCUNet backend');
+        console.log('Interactive Image Processor initialized with Replicate deployment');
     }
     
     setComparisonSlider(sliderInstance) {
@@ -57,11 +93,81 @@ class InteractiveImageProcessor {
     
     // Handle upload button click - trigger hidden file input
     handleUploadClick() {
+        // If user already has an image and wants to change it, reset to demo view
+        if (this.userImageUploaded) {
+            this.resetToDemoView();
+        }
+        
         console.log('Upload button clicked - triggering file input');
         this.fileInput.click();
         
         // Track upload button interaction
-        AnalyticsTracker.trackEvent('upload_button_clicked');
+        if (typeof AnalyticsTracker !== 'undefined') {
+            AnalyticsTracker.trackEvent('upload_button_clicked');
+        }
+    }
+    
+    // Reset UI back to demo view
+    resetToDemoView() {
+        // Reset state
+        this.userImageUploaded = false;
+        this.uploadedFile = null;
+        
+        // Reset button states
+        if (this.instantAiBtn) {
+            this.instantAiBtn.classList.add('disabled');
+            this.instantAiBtn.classList.remove('active');
+            this.instantAiBtn.style.display = 'none';
+        }
+        this.uploadBtn.textContent = 'Upload Image';
+        
+        // Clear file input
+        this.fileInput.value = '';
+        
+        // Remove enhanced label if it exists
+        this.removeEnhancedLabel();
+        
+        // Show demo section
+        this.demoSection.style.display = 'flex';
+        
+        // Hide other sections
+        this.singleImageSection.style.display = 'none';
+        this.finalComparisonSection.style.display = 'none';
+        
+        // Restart auto rotation if slider exists
+        if (this.comparisonSlider) {
+            this.comparisonSlider.startAutoRotation();
+        }
+        
+        console.log('Reset to demo view');
+    }
+    
+    // Handle download of enhanced image
+    downloadEnhancedImage() {
+        if (this.finalAfterImage.src) {
+            // Extract filename from original upload or use default
+            const originalFilename = this.uploadedFile ? this.uploadedFile.name : 'image.jpg';
+            const nameWithoutExt = originalFilename.substring(0, originalFilename.lastIndexOf('.')) || originalFilename;
+            const extension = originalFilename.substring(originalFilename.lastIndexOf('.') + 1) || 'jpg';
+            
+            const a = document.createElement('a');
+            a.href = this.finalAfterImage.src;
+            a.download = `${nameWithoutExt}_enhanced.${extension}`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            
+            console.log('✅ Enhanced image downloaded successfully');
+            
+            // Track download event
+            if (typeof AnalyticsTracker !== 'undefined') {
+                AnalyticsTracker.trackEvent('enhanced_image_downloaded', {
+                    filename: a.download
+                });
+            }
+        } else {
+            console.error('No enhanced image available to download');
+        }
     }
     
     // Handle file selection from file dialog
@@ -92,32 +198,35 @@ class InteractiveImageProcessor {
         reader.onload = (e) => {
             const imageDataUrl = e.target.result;
             
-            // Update both before and after images with user's upload
-            this.beforeImg.src = imageDataUrl;
-            this.afterImg.src = imageDataUrl;
-            
-            // Remove any existing filters
-            this.beforeImg.style.filter = '';
-            this.afterImg.style.filter = '';
+            // Update the uploaded image in the single image container
+            this.uploadedImage.src = imageDataUrl;
             
             // Mark that user has uploaded an image and store the file
             this.userImageUploaded = true;
             this.uploadedFile = file;
             
-            // Enable the Instant AI button
-            this.instantAiBtn.classList.remove('disabled');
-            this.instantAiBtn.classList.add('active');
+            // Enable and show the Instant AI button
+            if (this.instantAiBtn) {
+                this.instantAiBtn.classList.remove('disabled');
+                this.instantAiBtn.classList.add('active');
+                this.instantAiBtn.style.display = 'block';
+            }
             
             // Update upload button text
             this.uploadBtn.textContent = 'Change Image';
             
+            // Switch to single image view (Step 2)
+            this.showSingleImageView();
+            
             console.log('User image loaded successfully');
             
             // Track successful upload
-            AnalyticsTracker.trackEvent('image_uploaded', {
-                fileSize: file.size,
-                fileType: file.type
-            });
+            if (typeof AnalyticsTracker !== 'undefined') {
+                AnalyticsTracker.trackEvent('image_uploaded', {
+                    fileSize: file.size,
+                    fileType: file.type
+                });
+            }
         };
         
         reader.onerror = () => {
@@ -129,23 +238,70 @@ class InteractiveImageProcessor {
         reader.readAsDataURL(file);
     }
     
+    // Show single image view (Step 2)
+    showSingleImageView() {
+        // Hide demo section
+        this.demoSection.style.display = 'none';
+        
+        // Show single image section
+        this.singleImageSection.style.display = 'flex';
+        
+        // Hide final comparison section
+        this.finalComparisonSection.style.display = 'none';
+        
+        console.log('Switched to single image view');
+    }
+    
+    // Show final comparison view (Step 3)
+    showFinalComparisonView() {
+        // Hide demo section
+        this.demoSection.style.display = 'none';
+        
+        // Hide single image section
+        this.singleImageSection.style.display = 'none';
+        
+        // Show final comparison section
+        this.finalComparisonSection.style.display = 'flex';
+        
+        // Check if enhanced image is already loaded and hide overlay if so
+        if (this.finalAfterImage && this.finalAfterImage.src && this.finalAfterImage.src !== this.uploadedImage.src) {
+            if (this.processingOverlay) {
+                this.processingOverlay.style.display = 'none';
+            }
+        }
+        
+        console.log('Switched to final comparison view');
+    }
+    
     // Handle Instant AI button click - start local SCUNet processing
     handleInstantAiClick() {
         // Only proceed if user has uploaded an image and button is active
-        if (!this.userImageUploaded || this.instantAiBtn.classList.contains('disabled')) {
+        if (!this.userImageUploaded || !this.instantAiBtn || this.instantAiBtn.classList.contains('disabled')) {
             console.log('AI processing blocked - no image uploaded or button disabled');
             return;
         }
         
         console.log('Starting SCUNet enhancement process with local backend...');
         
-        // Show loading indicator with initial status
-        this.loadingIndicator.classList.add('show');
-        this.statusText.textContent = 'Processing with SCUNet...';
+        // Switch to final comparison view immediately
+        this.showFinalComparisonView();
+        
+        // Set the original image
+        this.finalBeforeImage.src = this.uploadedImage.src;
+        
+        // Show processing overlay
+        if (this.processingOverlay) {
+            this.processingOverlay.style.display = 'flex';
+        }
+        if (this.processingStatus) {
+            this.processingStatus.textContent = 'Processing with SCUNet...';
+        }
         
         // Disable the button during processing
-        this.instantAiBtn.classList.add('disabled');
-        this.instantAiBtn.classList.remove('active');
+        if (this.instantAiBtn) {
+            this.instantAiBtn.classList.add('disabled');
+            this.instantAiBtn.classList.remove('active');
+        }
         
         // Store processing start time for analytics
         this.processingStartTime = Date.now();
@@ -154,71 +310,164 @@ class InteractiveImageProcessor {
         this.startLocalEnhancement();
         
         // Track AI processing start
-        AnalyticsTracker.trackEvent('ai_enhancement_started');
+        if (typeof AnalyticsTracker !== 'undefined') {
+            AnalyticsTracker.trackEvent('ai_enhancement_started');
+        }
     }
     
-    // Process image with local SCUNet backend
+    // Method to change model type
+    setModelType(modelType) {
+        if (this.availableModels.includes(modelType)) {
+            this.modelType = modelType;
+            console.log(`Model type changed to: ${modelType}`);
+        } else {
+            console.warn(`Invalid model type: ${modelType}. Using default.`);
+            this.modelType = 'real image denoising';
+        }
+    }
+    
+    // Helper method to convert file to base64
+    fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => {
+                // Remove the data:image/jpeg;base64, prefix
+                const base64 = reader.result.split(',')[1];
+                resolve(base64);
+            };
+            reader.onerror = error => reject(error);
+        });
+    }
+    
+    // Helper method to convert base64 to blob
+    base64ToBlob(base64) {
+        const byteCharacters = atob(base64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        return new Blob([byteArray], { type: 'image/jpeg' });
+    }
+    
+    // Process image with Replicate deployment
     async startLocalEnhancement() {
         try {
             if (!this.uploadedFile) {
                 throw new Error('No file available for processing');
             }
             
-            console.log('🚀 Sending image to local SCUNet backend...');
-            this.statusText.textContent = 'Processing with SCUNet...';
+            console.log('🚀 Sending image to Replicate deployment...');
+            if (this.processingStatus) {
+                this.processingStatus.textContent = 'Processing with SCUNet on Replicate...';
+            }
             
-            // Create FormData to send the image file
-            const formData = new FormData();
-            formData.append('image', this.uploadedFile);
-            formData.append('model_type', this.modelType);
+            // Convert image to base64 for Replicate API
+            const base64Image = await this.fileToBase64(this.uploadedFile);
             
-            // Make the request to local backend
-            const response = await fetch(this.backendUrl, {
+            // Create payload for Replicate deployment
+            const payload = {
+                input: {
+                    image: `data:${this.uploadedFile.type};base64,${base64Image}`,
+                    model_name: this.modelType
+                }
+            };
+            
+            console.log('📤 Payload prepared:', {
+                deploymentId: this.deploymentId,
+                modelType: this.modelType,
+                imageSize: base64Image.length,
+                payloadKeys: Object.keys(payload.input)
+            });
+            
+            // Make the request through our proxy server to avoid CORS issues
+            const apiUrl = `/api/replicate/predictions`;
+            console.log('🌐 Making request through proxy to:', apiUrl);
+            
+            const response = await fetch(apiUrl, {
                 method: 'POST',
-                body: formData
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    deploymentId: this.deploymentId,
+                    input: payload.input
+                })
+            });
+            
+            console.log('📥 Response received:', {
+                status: response.status,
+                statusText: response.statusText,
+                headers: Object.fromEntries(response.headers.entries())
             });
             
             if (!response.ok) {
                 const errorText = await response.text();
-                throw new Error(`Backend processing failed: ${response.status} - ${errorText}`);
+                console.error('❌ Replicate API error response:', errorText);
+                throw new Error(`Replicate API failed: ${response.status} - ${errorText}`);
             }
             
-            // Get the enhanced image blob
-            const enhancedImageBlob = await response.blob();
+            // Get the prediction ID from response
+            const predictionData = await response.json();
+            const predictionId = predictionData.id;
+            
+            console.log('📋 Prediction created, waiting for completion...');
+            if (this.processingStatus) {
+                this.processingStatus.textContent = 'Processing image... Please wait...';
+            }
+            
+            // Poll for completion
+            const result = await this.waitForPrediction(predictionId);
+            
+            if (!result || !result.output || !result.output.denoised_image) {
+                throw new Error('No enhanced image received from Replicate');
+            }
             
             console.log('✅ SCUNet enhancement completed successfully!');
-            this.statusText.textContent = 'Enhancement complete! Loading result...';
+            if (this.processingStatus) {
+                this.processingStatus.textContent = 'Enhancement complete! Loading result...';
+            }
             
-            // Create object URL for the enhanced image
-            const enhancedImageUrl = URL.createObjectURL(enhancedImageBlob);
-            
-            // Load the enhanced image into the "after" image element
-            this.afterImg.onload = () => {
+            // Load the enhanced image from Replicate
+            this.finalAfterImage.onload = () => {
                 console.log('✅ Enhanced image loaded successfully');
-                this.statusText.textContent = 'Enhancement complete!';
                 
-                // Remove any temporary CSS filters
-                this.afterImg.style.filter = '';
+                // Hide processing overlay
+                if (this.processingOverlay) {
+                    this.processingOverlay.style.display = 'none';
+                }
+                
+                // Add the "AI Enhanced" label after processing is complete
+                this.addEnhancedLabel();
                 
                 // Track successful AI processing completion
-                AnalyticsTracker.trackEvent('ai_enhancement_completed', {
-                    success: true,
-                    processingTime: Date.now() - this.processingStartTime
-                });
+                if (typeof AnalyticsTracker !== 'undefined') {
+                    AnalyticsTracker.trackEvent('ai_enhancement_completed', {
+                        success: true,
+                        processingTime: Date.now() - this.processingStartTime
+                    });
+                }
                 
                 // Clean up UI state
                 this.cleanupAfterProcessing();
-                
-                // Clean up the object URL
-                URL.revokeObjectURL(enhancedImageUrl);
             };
             
-            this.afterImg.onerror = () => {
+            this.finalAfterImage.onerror = () => {
                 throw new Error('Failed to load enhanced image');
             };
             
             // Set the source to trigger loading
-            this.afterImg.src = enhancedImageUrl;
+            this.finalAfterImage.src = result.output.denoised_image;
+            
+            // Fallback: If image is already loaded (cached), hide overlay immediately
+            if (this.finalAfterImage.complete) {
+                console.log('✅ Enhanced image already loaded (cached)');
+                if (this.processingOverlay) {
+                    this.processingOverlay.style.display = 'none';
+                }
+                this.cleanupAfterProcessing();
+            }
             
         } catch (error) {
             console.error('💥 Error during SCUNet enhancement:', error);
@@ -226,28 +475,84 @@ class InteractiveImageProcessor {
         }
     }
     
+    // Wait for prediction to complete
+    async waitForPrediction(predictionId) {
+        const maxAttempts = 60; // 5 minutes max wait
+        let attempts = 0;
+        
+        while (attempts < maxAttempts) {
+            try {
+                const response = await fetch(`/api/replicate/predictions/${predictionId}`);
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to check prediction status: ${response.status}`);
+                }
+                
+                const prediction = await response.json();
+                
+                if (prediction.status === 'succeeded') {
+                    return prediction;
+                } else if (prediction.status === 'failed') {
+                    throw new Error(`Prediction failed: ${prediction.error || 'Unknown error'}`);
+                } else if (prediction.status === 'canceled') {
+                    throw new Error('Prediction was canceled');
+                }
+                
+                // Wait 5 seconds before next check
+                await new Promise(resolve => setTimeout(resolve, 5000));
+                attempts++;
+                
+                // Update status
+                if (this.processingStatus) {
+                    this.processingStatus.textContent = `Processing... (${attempts * 5}s)`;
+                }
+                
+            } catch (error) {
+                console.error('Error checking prediction status:', error);
+                attempts++;
+                await new Promise(resolve => setTimeout(resolve, 5000));
+            }
+        }
+        
+        throw new Error('Prediction timed out after 5 minutes');
+    }
+    
     // Handle enhancement errors
     handleEnhancementError(error) {
         console.error('💥 Enhancement error:', error);
         
         // Update status for error state
-        this.statusText.textContent = 'Enhancement failed, applying backup filter...';
+        if (this.processingStatus) {
+            this.processingStatus.textContent = 'Enhancement failed, applying backup filter...';
+        }
         
-        // Fallback: Apply CSS filter enhancement if backend fails
-        this.afterImg.style.filter = 'saturate(1.5) brightness(1.1) contrast(1.15)';
+        // Show the original image as a fallback and hide processing overlay
+        this.finalAfterImage.src = this.uploadedImage.src;
+        this.finalAfterImage.style.filter = 'saturate(1.5) brightness(1.1) contrast(1.15)';
+        
+        // Hide processing overlay
+        if (this.processingOverlay) {
+            this.processingOverlay.style.display = 'none';
+        }
         
         // Track failed AI processing
-        AnalyticsTracker.trackEvent('ai_enhancement_failed', {
-            error: error.message,
-            errorType: error.constructor.name
-        });
+        if (typeof AnalyticsTracker !== 'undefined') {
+            AnalyticsTracker.trackEvent('ai_enhancement_failed', {
+                error: error.message,
+                errorType: error.constructor.name
+            });
+        }
         
         // Show user-friendly error message based on error type
         let userMessage = 'SCUNet enhancement temporarily unavailable. Applied basic enhancement instead.';
         if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-            userMessage = 'Cannot connect to backend server. Please ensure the SCUNet backend is running.';
-        } else if (error.message.includes('Backend processing failed')) {
-            userMessage = 'Backend processing error. Applied basic enhancement instead.';
+            userMessage = 'Cannot connect to Replicate API. Please check your internet connection.';
+        } else if (error.message.includes('Replicate API failed')) {
+            userMessage = 'Replicate API error. Please check your API token and deployment.';
+        } else if (error.message.includes('Prediction failed')) {
+            userMessage = 'Image processing failed on Replicate. Applied basic enhancement instead.';
+        } else if (error.message.includes('timed out')) {
+            userMessage = 'Processing timed out. Applied basic enhancement instead.';
         }
         
         alert(userMessage);
@@ -260,15 +565,236 @@ class InteractiveImageProcessor {
     cleanupAfterProcessing() {
         console.log('🏁 Cleaning up UI state...');
         
-        // Always hide loading indicator
-        this.loadingIndicator.classList.remove('show');
+        // Hide processing overlay
+        if (this.processingOverlay) {
+            this.processingOverlay.style.display = 'none';
+        }
         
         // Re-enable the button (allow multiple enhancements)
-        this.instantAiBtn.classList.remove('disabled');
-        this.instantAiBtn.classList.add('active');
+        if (this.instantAiBtn) {
+            this.instantAiBtn.classList.remove('disabled');
+            this.instantAiBtn.classList.add('active');
+        }
         
         console.log('✨ Process complete - UI ready for next interaction');
     }
+    
+    // Force hide processing overlay (emergency cleanup)
+    forceHideProcessingOverlay() {
+        if (this.processingOverlay) {
+            this.processingOverlay.style.display = 'none';
+            console.log('🔧 Forced hide of processing overlay');
+        }
+    }
+    
+    // Add enhanced label after processing is complete
+    addEnhancedLabel() {
+        const enhancedSide = this.finalAfterImage.parentElement;
+        if (enhancedSide && !enhancedSide.querySelector('.enhanced-label')) {
+            const label = document.createElement('div');
+            label.className = 'side-label enhanced-label';
+            label.textContent = 'AI Enhanced';
+            enhancedSide.appendChild(label);
+        }
+    }
+    
+    // Remove enhanced label when resetting
+    removeEnhancedLabel() {
+        const enhancedSide = this.finalAfterImage.parentElement;
+        if (enhancedSide) {
+            const existingLabel = enhancedSide.querySelector('.enhanced-label');
+            if (existingLabel) {
+                existingLabel.remove();
+            }
+        }
+    }
+}
+
+// Premium Enhancement Comparison Handler
+class PremiumEnhancementComparison {
+    constructor() {
+        this.currentMode = 'slider';
+        this.sliderPosition = 50;
+        this.isDragging = false;
+        this.magnifierEnabled = false;
+        
+        // Get DOM elements
+        this.sliderView = document.getElementById('premium-slider-view');
+        this.sideBySideView = document.getElementById('side-by-side-view');
+        this.sliderHandle = document.getElementById('enhancedSliderHandle');
+        this.magnifierToggle = document.querySelector('.magnifier-toggle');
+        this.magnifier = document.getElementById('magnifier');
+        
+        // Image containers - removed old complex UI elements
+        
+        this.init();
+    }
+    
+    init() {
+        // Slider functionality
+        if (this.sliderHandle) {
+            this.initSlider();
+        }
+        
+        // Magnifier toggle
+        if (this.magnifierToggle) {
+            this.magnifierToggle.addEventListener('click', () => this.toggleMagnifier());
+        }
+        
+        // Keyboard controls
+        this.initKeyboardControls();
+    }
+    
+    // switchMode method removed - using simple side-by-side layout only
+    
+    initSlider() {
+        // Mouse events
+        this.sliderHandle.addEventListener('mousedown', (e) => this.startDrag(e));
+        document.addEventListener('mousemove', (e) => this.drag(e));
+        document.addEventListener('mouseup', () => this.stopDrag());
+        
+        // Touch events
+        this.sliderHandle.addEventListener('touchstart', (e) => this.startDrag(e));
+        document.addEventListener('touchmove', (e) => this.drag(e));
+        document.addEventListener('touchend', () => this.stopDrag());
+    }
+    
+    startDrag(e) {
+        e.preventDefault();
+        this.isDragging = true;
+        this.sliderHandle.style.cursor = 'grabbing';
+    }
+    
+    drag(e) {
+        if (!this.isDragging) return;
+        
+        const container = this.sliderHandle.parentElement;
+        const rect = container.getBoundingClientRect();
+        const x = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+        const position = ((x - rect.left) / rect.width) * 100;
+        
+        this.updateSliderPosition(Math.max(0, Math.min(100, position)));
+    }
+    
+    stopDrag() {
+        if (!this.isDragging) return;
+        
+        this.isDragging = false;
+        this.sliderHandle.style.cursor = 'ew-resize';
+        
+        // Add smooth easing on release
+        this.sliderHandle.style.transition = 'left 0.2s ease-out';
+        this.sliderAfterContainer.style.transition = 'clip-path 0.2s ease-out';
+        
+        setTimeout(() => {
+            this.sliderHandle.style.transition = '';
+            this.sliderAfterContainer.style.transition = '';
+        }, 200);
+    }
+    
+    updateSliderPosition(position) {
+        this.sliderPosition = position;
+        this.sliderHandle.style.left = `${position}%`;
+        this.sliderAfterContainer.style.clipPath = `inset(0 0 0 ${position}%)`;
+    }
+    
+    toggleMagnifier() {
+        this.magnifierEnabled = !this.magnifierEnabled;
+        this.magnifierToggle.classList.toggle('active', this.magnifierEnabled);
+        
+        if (this.magnifierEnabled) {
+            this.initMagnifier();
+        } else {
+            this.magnifier.style.display = 'none';
+            this.removeMagnifierListeners();
+        }
+    }
+    
+    initMagnifier() {
+        const container = this.sliderHandle.parentElement;
+        
+        const handleMouseMove = (e) => {
+            if (!this.magnifierEnabled) return;
+            
+            const rect = container.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            // Show magnifier
+            this.magnifier.style.display = 'block';
+            this.magnifier.style.left = `${x}px`;
+            this.magnifier.style.top = `${y}px`;
+            
+            // Update magnifier content
+            const beforeImg = document.getElementById('finalBeforeImage');
+            const afterImg = document.getElementById('finalAfterImage');
+            
+            if (beforeImg && afterImg) {
+                const scale = 2;
+                const bgX = -x * scale + 100;
+                const bgY = -y * scale + 100;
+                
+                const magnifierBefore = this.magnifier.querySelector('.magnifier-before');
+                const magnifierAfter = this.magnifier.querySelector('.magnifier-after');
+                
+                magnifierBefore.style.backgroundImage = `url(${beforeImg.src})`;
+                magnifierBefore.style.backgroundPosition = `${bgX}px ${bgY}px`;
+                magnifierBefore.style.backgroundSize = `${rect.width * scale}px ${rect.height * scale}px`;
+                
+                magnifierAfter.style.backgroundImage = `url(${afterImg.src})`;
+                magnifierAfter.style.backgroundPosition = `${bgX}px ${bgY}px`;
+                magnifierAfter.style.backgroundSize = `${rect.width * scale}px ${rect.height * scale}px`;
+                magnifierAfter.style.clipPath = `inset(0 0 0 ${this.sliderPosition}%)`;
+            }
+        };
+        
+        const handleMouseLeave = () => {
+            this.magnifier.style.display = 'none';
+        };
+        
+        container.addEventListener('mousemove', handleMouseMove);
+        container.addEventListener('mouseleave', handleMouseLeave);
+        
+        // Store listeners for cleanup
+        this.magnifierListeners = { handleMouseMove, handleMouseLeave };
+    }
+    
+    removeMagnifierListeners() {
+        if (this.magnifierListeners) {
+            const container = this.sliderHandle.parentElement;
+            container.removeEventListener('mousemove', this.magnifierListeners.handleMouseMove);
+            container.removeEventListener('mouseleave', this.magnifierListeners.handleMouseLeave);
+            this.magnifierListeners = null;
+        }
+    }
+    
+    initKeyboardControls() {
+        document.addEventListener('keydown', (e) => {
+            if (!document.querySelector('.final-comparison-section').style.display || 
+                document.querySelector('.final-comparison-section').style.display === 'none') return;
+            
+            if (this.currentMode === 'slider') {
+                switch(e.key) {
+                    case 'ArrowLeft':
+                        e.preventDefault();
+                        this.updateSliderPosition(Math.max(0, this.sliderPosition - 3));
+                        break;
+                    case 'ArrowRight':
+                        e.preventDefault();
+                        this.updateSliderPosition(Math.min(100, this.sliderPosition + 3));
+                        break;
+                    case 'Enter':
+                        if (document.activeElement === this.sliderHandle) {
+                            e.preventDefault();
+                            this.toggleMagnifier();
+                        }
+                        break;
+                }
+            }
+        });
+    }
+    
+
 }
 
 // Enhanced Image Comparison Slider with upload integration
@@ -283,9 +809,9 @@ class ImageComparisonSlider {
         // Get DOM elements
         this.slider = document.getElementById('comparisonSlider');
         this.divider = document.getElementById('divider');
-        this.beforeImg = document.getElementById('beforeImg');
-        this.afterImg = document.getElementById('afterImg');
-        this.afterContainer = this.afterImg.parentElement;
+        this.demoBeforeImg = document.getElementById('beforeImg');
+        this.demoAfterImg = document.getElementById('afterImg');
+        this.afterContainer = this.demoAfterImg.parentElement;
         
         this.init();
     }
@@ -325,34 +851,34 @@ class ImageComparisonSlider {
         const pair = imagePairs[index];
         
         // Add transition classes
-        this.beforeImg.classList.add('fade-transition');
-        this.afterImg.classList.add('fade-transition');
+        this.demoBeforeImg.classList.add('fade-transition');
+        this.demoAfterImg.classList.add('fade-transition');
         
         // Fade out
-        this.beforeImg.classList.add('fade-out');
-        this.afterImg.classList.add('fade-out');
+        this.demoBeforeImg.classList.add('fade-out');
+        this.demoAfterImg.classList.add('fade-out');
         
         setTimeout(() => {
             // Load new images
-            this.beforeImg.src = pair.before;
-            this.afterImg.src = pair.after;
+            this.demoBeforeImg.src = pair.before;
+            this.demoAfterImg.src = pair.after;
             
             // Apply filter to before image to simulate original quality
-            this.beforeImg.style.filter = 'brightness(0.8) contrast(0.9) saturate(0.7)';
+            this.demoBeforeImg.style.filter = 'brightness(0.8) contrast(0.9) saturate(0.7)';
             
             // Enhanced styling for after image
-            this.afterImg.style.filter = 'brightness(1.1) contrast(1.15) saturate(1.3) sharpen(1.2)';
+            this.demoAfterImg.style.filter = 'brightness(1.1) contrast(1.15) saturate(1.3) sharpen(1.2)';
             
             // Fade in
-            this.beforeImg.classList.remove('fade-out');
-            this.afterImg.classList.remove('fade-out');
-            this.beforeImg.classList.add('fade-in');
-            this.afterImg.classList.add('fade-in');
+            this.demoBeforeImg.classList.remove('fade-out');
+            this.demoAfterImg.classList.remove('fade-out');
+            this.demoBeforeImg.classList.add('fade-in');
+            this.demoAfterImg.classList.add('fade-in');
             
             setTimeout(() => {
                 // Remove transition classes after animation
-                this.beforeImg.classList.remove('fade-transition', 'fade-in');
-                this.afterImg.classList.remove('fade-transition', 'fade-in');
+                this.demoBeforeImg.classList.remove('fade-transition', 'fade-in');
+                this.demoAfterImg.classList.remove('fade-transition', 'fade-in');
             }, 500);
         }, 250);
         
@@ -374,8 +900,8 @@ class ImageComparisonSlider {
         this.slider.addEventListener('click', this.handleClick.bind(this));
         
         // Prevent image dragging
-        this.beforeImg.addEventListener('dragstart', (e) => e.preventDefault());
-        this.afterImg.addEventListener('dragstart', (e) => e.preventDefault());
+        this.demoBeforeImg.addEventListener('dragstart', (e) => e.preventDefault());
+        this.demoAfterImg.addEventListener('dragstart', (e) => e.preventDefault());
     }
     
     startDrag(e) {
@@ -480,6 +1006,112 @@ class AnalyticsTracker {
     }
 }
 
+// Mobile Pricing Panel Handler
+class MobilePricingHandler {
+    constructor() {
+        this.pricingPanel = document.querySelector('.pricing-rail-panel');
+        this.closeBtn = document.getElementById('mobile-close-btn');
+        this.isExpanded = false;
+        this.isMobile = window.innerWidth < 768;
+        
+        this.init();
+    }
+    
+    init() {
+        if (!this.pricingPanel) return;
+        
+        // Check if mobile on resize
+        window.addEventListener('resize', () => {
+            this.isMobile = window.innerWidth < 768;
+            if (!this.isMobile && this.isExpanded) {
+                this.collapse();
+            }
+        });
+        
+        // Mobile panel tap to expand (only for the compact rail)
+        this.pricingPanel.addEventListener('click', (e) => {
+            if (this.isMobile && !this.isExpanded && !e.target.closest('.pricing-rail')) {
+                this.expand();
+            }
+        });
+        
+        // Close button handler
+        if (this.closeBtn) {
+            this.closeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.collapse();
+            });
+        }
+        
+        // Close on backdrop click when expanded
+        document.addEventListener('click', (e) => {
+            if (this.isExpanded && this.isMobile && !this.pricingPanel.contains(e.target)) {
+                this.collapse();
+            }
+        });
+        
+        // Prevent body scroll when expanded
+        this.handleBodyScroll();
+    }
+    
+    expand() {
+        if (!this.isMobile) return;
+        
+        this.pricingPanel.classList.add('expanded');
+        this.isExpanded = true;
+        document.body.style.overflow = 'hidden';
+        
+        // Add backdrop
+        this.addBackdrop();
+    }
+    
+    collapse() {
+        this.pricingPanel.classList.remove('expanded');
+        this.isExpanded = false;
+        document.body.style.overflow = '';
+        
+        // Remove backdrop
+        this.removeBackdrop();
+    }
+    
+    addBackdrop() {
+        if (document.querySelector('.pricing-backdrop')) return;
+        
+        const backdrop = document.createElement('div');
+        backdrop.className = 'pricing-backdrop';
+        backdrop.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        `;
+        
+        backdrop.addEventListener('click', () => this.collapse());
+        document.body.appendChild(backdrop);
+    }
+    
+    removeBackdrop() {
+        const backdrop = document.querySelector('.pricing-backdrop');
+        if (backdrop) {
+            backdrop.remove();
+        }
+    }
+    
+    handleBodyScroll() {
+        // Prevent body scroll when mobile panel is expanded
+        const originalOverflow = document.body.style.overflow;
+        
+        // Restore on page unload
+        window.addEventListener('beforeunload', () => {
+            document.body.style.overflow = originalOverflow;
+        });
+    }
+}
+
 // Initialize application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     console.log('AI Image Enhancer Landing Page - Initializing...');
@@ -488,6 +1120,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const comparisonSlider = new ImageComparisonSlider();
     const interactiveProcessor = new InteractiveImageProcessor();
     new NavigationHandler();
+    new PremiumEnhancementComparison();
+    new MobilePricingHandler();
     
     // Connect the interactive processor with the comparison slider
     interactiveProcessor.setComparisonSlider(comparisonSlider);
