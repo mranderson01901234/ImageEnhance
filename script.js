@@ -32,9 +32,21 @@ class InteractiveImageProcessor {
         this.userImageUploaded = false;
         this.uploadedFile = null;
         
-        // Local SCUNet backend configuration
-        this.backendUrl = 'http://localhost:5000/enhance';
-        this.modelType = 'gan'; // or 'psnr' based on your preference
+        // Replicate deployment configuration
+        this.replicateApiToken = process.env.REPLICATE_API_TOKEN || '';
+        this.deploymentId = 'mranderson01901234/scunet-fp16';
+        this.modelType = 'real image denoising (FP16 Optimized)'; // Default model type
+        
+        // Available model options for SCUNet
+        this.availableModels = [
+            'real image denoising',
+            'grayscale images-15',
+            'grayscale images-25', 
+            'grayscale images-50',
+            'color images-15',
+            'color images-25',
+            'color images-50'
+        ];
         
         this.init();
     }
@@ -48,7 +60,7 @@ class InteractiveImageProcessor {
         this.fileInput.addEventListener('change', this.handleFileSelection.bind(this));
         this.instantAiBtn.addEventListener('click', this.handleInstantAiClick.bind(this));
         
-        console.log('Interactive Image Processor initialized with local SCUNet backend');
+        console.log('Interactive Image Processor initialized with Replicate SCUNet API (FP16)');
     }
     
     setComparisonSlider(sliderInstance) {
@@ -129,7 +141,7 @@ class InteractiveImageProcessor {
         reader.readAsDataURL(file);
     }
     
-    // Handle Instant AI button click - start local SCUNet processing
+    // Handle Instant AI button click - start Replicate SCUNet processing
     handleInstantAiClick() {
         // Only proceed if user has uploaded an image and button is active
         if (!this.userImageUploaded || this.instantAiBtn.classList.contains('disabled')) {
@@ -137,11 +149,11 @@ class InteractiveImageProcessor {
             return;
         }
         
-        console.log('Starting SCUNet enhancement process with local backend...');
+        console.log('Starting SCUNet enhancement process with Replicate...');
         
         // Show loading indicator with initial status
         this.loadingIndicator.classList.add('show');
-        this.statusText.textContent = 'Processing with SCUNet...';
+        this.statusText.textContent = 'Processing with SCUNet (FP16)...';
         
         // Disable the button during processing
         this.instantAiBtn.classList.add('disabled');
@@ -150,49 +162,36 @@ class InteractiveImageProcessor {
         // Store processing start time for analytics
         this.processingStartTime = Date.now();
         
-        // Start the local SCUNet enhancement
-        this.startLocalEnhancement();
+        // Start the Replicate SCUNet enhancement
+        this.startReplicateEnhancement();
         
         // Track AI processing start
         AnalyticsTracker.trackEvent('ai_enhancement_started');
     }
     
-    // Process image with local SCUNet backend
-    async startLocalEnhancement() {
+    // Process image with Replicate SCUNet API
+    async startReplicateEnhancement() {
         try {
             if (!this.uploadedFile) {
                 throw new Error('No file available for processing');
             }
             
-            console.log('🚀 Sending image to local SCUNet backend...');
-            this.statusText.textContent = 'Processing with SCUNet...';
+            console.log('🚀 Sending image to Replicate SCUNet API...');
+            this.statusText.textContent = 'Processing with SCUNet (FP16)...';
             
-            // Create FormData to send the image file
-            const formData = new FormData();
-            formData.append('image', this.uploadedFile);
-            formData.append('model_type', this.modelType);
+            // Convert image to base64 for Replicate API
+            const base64Image = await this.fileToBase64(this.uploadedFile);
             
-            // Make the request to local backend
-            const response = await fetch(this.backendUrl, {
-                method: 'POST',
-                body: formData
-            });
+            // Make prediction request to Replicate
+            const prediction = await this.createPrediction(base64Image);
             
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Backend processing failed: ${response.status} - ${errorText}`);
-            }
-            
-            // Get the enhanced image blob
-            const enhancedImageBlob = await response.blob();
+            // Poll for completion
+            const result = await this.waitForPrediction(prediction.id);
             
             console.log('✅ SCUNet enhancement completed successfully!');
             this.statusText.textContent = 'Enhancement complete! Loading result...';
             
-            // Create object URL for the enhanced image
-            const enhancedImageUrl = URL.createObjectURL(enhancedImageBlob);
-            
-            // Load the enhanced image into the "after" image element
+            // Load the enhanced image from Replicate
             this.afterImg.onload = () => {
                 console.log('✅ Enhanced image loaded successfully');
                 this.statusText.textContent = 'Enhancement complete!';
@@ -208,9 +207,6 @@ class InteractiveImageProcessor {
                 
                 // Clean up UI state
                 this.cleanupAfterProcessing();
-                
-                // Clean up the object URL
-                URL.revokeObjectURL(enhancedImageUrl);
             };
             
             this.afterImg.onerror = () => {
@@ -218,12 +214,79 @@ class InteractiveImageProcessor {
             };
             
             // Set the source to trigger loading
-            this.afterImg.src = enhancedImageUrl;
+            this.afterImg.src = result;
             
         } catch (error) {
             console.error('💥 Error during SCUNet enhancement:', error);
             this.handleEnhancementError(error);
         }
+    }
+    
+    // Convert file to base64
+    fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => {
+                const base64 = reader.result.split(',')[1];
+                resolve(base64);
+            };
+            reader.onerror = error => reject(error);
+        });
+    }
+    
+    // Create prediction on Replicate
+    async createPrediction(base64Image) {
+        const response = await fetch('/api/replicate/predictions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                deploymentId: this.deploymentId,
+                input: {
+                    image: `data:image/jpeg;base64,${base64Image}`
+                }
+            })
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(`Failed to create prediction: ${error.error || response.statusText}`);
+        }
+        
+        return await response.json();
+    }
+    
+    // Wait for prediction to complete
+    async waitForPrediction(predictionId) {
+        const maxAttempts = 60; // 5 minutes max
+        let attempts = 0;
+        
+        while (attempts < maxAttempts) {
+            const response = await fetch(`/api/replicate/predictions/${predictionId}`);
+            
+            if (!response.ok) {
+                throw new Error(`Failed to check prediction status: ${response.statusText}`);
+            }
+            
+            const prediction = await response.json();
+            
+            if (prediction.status === 'succeeded') {
+                return prediction.output;
+            } else if (prediction.status === 'failed') {
+                throw new Error(`Prediction failed: ${prediction.error || 'Unknown error'}`);
+            }
+            
+            // Wait 5 seconds before next check
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            attempts++;
+            
+            // Update status
+            this.statusText.textContent = `Processing... (${attempts * 5}s)`;
+        }
+        
+        throw new Error('Prediction timed out after 5 minutes');
     }
     
     // Handle enhancement errors
@@ -245,9 +308,11 @@ class InteractiveImageProcessor {
         // Show user-friendly error message based on error type
         let userMessage = 'SCUNet enhancement temporarily unavailable. Applied basic enhancement instead.';
         if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-            userMessage = 'Cannot connect to backend server. Please ensure the SCUNet backend is running.';
-        } else if (error.message.includes('Backend processing failed')) {
-            userMessage = 'Backend processing error. Applied basic enhancement instead.';
+            userMessage = 'Cannot connect to Replicate API. Please check your internet connection.';
+        } else if (error.message.includes('Prediction failed')) {
+            userMessage = 'AI processing failed. Applied basic enhancement instead.';
+        } else if (error.message.includes('timed out')) {
+            userMessage = 'Processing took too long. Applied basic enhancement instead.';
         }
         
         alert(userMessage);
