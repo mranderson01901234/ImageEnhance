@@ -24,6 +24,7 @@ class Predictor(BasePredictor):
         self.model.load_state_dict(torch.load(model_path, map_location=self.device, weights_only=True), strict=True)
         self.model.eval()
         self.model = self.model.to(self.device)
+        self.model = self.model.half()
         print("Model loaded successfully.")
 
     def predict(self, image: Path = Input(description="Input image")) -> Path:
@@ -32,6 +33,7 @@ class Predictor(BasePredictor):
         img_l = cv2.imread(str(image), cv2.IMREAD_COLOR).astype(np.float32) / 255.
         img_l = np.transpose(img_l if img_l.shape[2] == 1 else img_l[:, :, [2, 1, 0]], (2, 0, 1))
         img_l = torch.from_numpy(img_l).float().unsqueeze(0).to(self.device)
+        img_l = img_l.half()
 
         # --- Inference ---
         window_size = 256
