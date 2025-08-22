@@ -14,6 +14,8 @@ import torch
 import numpy as np
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+import requests
+import time
 
 # Import SCUNet model
 from models.network_scunet import SCUNet as net
@@ -21,13 +23,8 @@ from models.network_scunet import SCUNet as net
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend integration
 
-# Configuration
-MODEL_CONFIG = {
-    'Real_Denoising': 'scunet_color_real_psnr.pth',
-    'Color_Denoising': 'scunet_color_real_psnr.pth', 
-    'Super_Resolution': 'scunet_color_real_gan.pth',
-    'JPEG_Artifact_Reduction': 'scunet_color_real_psnr.pth'
-}
+# Import configuration
+from config import MODEL_CONFIG, REPLICATE_API_TOKEN, REPLICATE_API_URL, HOST, PORT, DEBUG
 
 # Global model variable
 model = None
@@ -121,6 +118,78 @@ def process_image_with_scunet(image_data, task='Real_Denoising'):
         print(f"SCUNet processing error: {str(e)}")
         raise Exception(f"Image processing failed: {str(e)}")
 
+@app.route('/api/replicate/predictions', methods=['POST'])
+def create_replicate_prediction():
+    """
+    Create a new prediction using Replicate API
+    This endpoint proxies requests to Replicate
+    """
+    try:
+        if not REPLICATE_API_TOKEN:
+            return jsonify({'error': 'Replicate API token not configured'}), 500
+        
+        data = request.get_json()
+        if not data or 'deploymentId' not in data or 'input' not in data:
+            return jsonify({'error': 'Missing deploymentId or input'}), 400
+        
+        deployment_id = data['deploymentId']
+        input_data = data['input']
+        
+        # Create prediction on Replicate
+        headers = {
+            'Authorization': f'Token {REPLICATE_API_TOKEN}',
+            'Content-Type': 'application/json'
+        }
+        
+        payload = {
+            'version': deployment_id,
+            'input': input_data
+        }
+        
+        response = requests.post(
+            f'{REPLICATE_API_URL}/predictions',
+            headers=headers,
+            json=payload
+        )
+        
+        if response.status_code != 201:
+            return jsonify({'error': f'Replicate API error: {response.text}'}), response.status_code
+        
+        prediction_data = response.json()
+        return jsonify(prediction_data), 201
+        
+    except Exception as e:
+        print(f"Error creating Replicate prediction: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/replicate/predictions/<prediction_id>', methods=['GET'])
+def get_replicate_prediction(prediction_id):
+    """
+    Get prediction status and results from Replicate API
+    """
+    try:
+        if not REPLICATE_API_TOKEN:
+            return jsonify({'error': 'Replicate API token not configured'}), 500
+        
+        headers = {
+            'Authorization': f'Token {REPLICATE_API_TOKEN}'
+        }
+        
+        response = requests.get(
+            f'{REPLICATE_API_URL}/predictions/{prediction_id}',
+            headers=headers
+        )
+        
+        if response.status_code != 200:
+            return jsonify({'error': f'Replicate API error: {response.text}'}), response.status_code
+        
+        prediction_data = response.json()
+        return jsonify(prediction_data)
+        
+    except Exception as e:
+        print(f"Error getting Replicate prediction: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/enhance', methods=['POST'])
 def enhance_image():
     """
@@ -171,5 +240,7 @@ if __name__ == '__main__':
     print("Available endpoints:")
     print("  - POST /enhance - Image enhancement")
     print("  - GET /health - Health check")
+    print("  - POST /api/replicate/predictions - Create Replicate prediction")
+    print("  - GET /api/replicate/predictions/<id> - Get Replicate prediction status")
     
-    app.run(host='0.0.0.0', port=5001, debug=True)
+    app.run(host=HOST, port=PORT, debug=DEBUG)
