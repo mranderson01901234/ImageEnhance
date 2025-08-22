@@ -11,8 +11,16 @@ app.use(cors());
 // Parse JSON bodies
 app.use(express.json({ limit: '50mb' }));
 
-// Serve static files
-app.use(express.static('.'));
+// Serve static files with cache busting
+app.use(express.static('.', {
+  setHeaders: (res, path) => {
+    if (path.endsWith('.js') || path.endsWith('.css') || path.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+  }
+}));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
