@@ -100,7 +100,7 @@ The application now supports Replicate deployment for enhanced AI processing:
    ./start_backend.sh
    ```
 
-3. **Model Version**: Currently configured to use `mranderson01901234/my-scunet2point0`
+3. **Model Version**: Currently configured to use `mranderson01901234/scunetgpu`
 
 ### Frontend Customization
 

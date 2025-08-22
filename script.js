@@ -44,7 +44,7 @@ class InteractiveImageProcessor {
         
         // Replicate deployment configuration
         this.replicateApiToken = ''; // Will be loaded from environment/server
-        this.deploymentId = 'mranderson01901234/my-scunet2point0';
+        this.deploymentId = 'mranderson01901234/scunetgpu';
         this.modelType = 'real image denoising'; // Default model type
         
         // Available model options for SCUNet
