@@ -1,0 +1,11 @@
+build:
+  gpu: true
+  python_version: "3.10"
+  python_packages:
+    - "torch==2.1.0"
+    - "torchvision==0.16.0"
+    - "numpy==1.26.4"
+    - "opencv-python-headless==4.8.0.76"
+    - "Pillow==10.1.0"
+    - "timm==0.9.12"
+predict: "predict.py:Predictor"

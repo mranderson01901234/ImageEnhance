@@ -1,0 +1,59 @@
+Replit Prompt: AI Image Enhancer Landing Page
+Project Goal
+
+Create a responsive, modern, and visually appealing landing page for an AI image enhancement service. The page should be built with HTML, CSS, and JavaScript. The design should be clean, professional, and dark-themed, inspired by the provided UI screenshot.
+Core Feature: Automated Before-and-After Image Slider
+
+The main focus of the page is a large "before and after" image comparison slider that automatically cycles through a set of images.
+
+    Functionality:
+
+        The slider should be on the left side of the page, occupying about 50-60% of the viewport width on desktop.
+
+        It needs to display two images side-by-side: the "before" (original) and the "after" (AI-enhanced).
+
+        A vertical divider should be draggable by the user to compare the two images.
+
+        The slider must automatically and smoothly transition between at least 3 different sets of before/after images. Let it cycle every 5-6 seconds.
+
+        Use high-quality placeholder images for now. You can use a service like https://picsum.photos/ or https://placehold.co/. Make sure the before and after images for each pair are different so the effect is visible (e.g., use a grayscale filter on the "before" image).
+
+Content and Styling
+
+    Typography:
+
+        The primary font for headings and taglines must be "Rethink Sans". Please import it from Google Fonts.
+
+        Body text can be a clean, sans-serif font like Inter or Lato.
+
+    Main Text Content (Right Side):
+
+        Tagline: The main headline should be the exact text: "Give your image a standing ovation"
+
+        Sub-headline: Add a short, descriptive paragraph below the tagline, such as: "Powered by deep-learning models, with a final curation by our professional editors."
+
+    Call to Action (CTA):
+
+        Below the text content, include a prominent button with the text "Upload Image".
+
+        Style the button to be eye-catching against the dark background.
+
+Layout and Structure
+
+    Framework: Use a standard HTML5 structure. You can use a framework like Tailwind CSS for utility classes to speed up styling, or just use plain CSS with Flexbox/Grid for layout.
+
+    Responsiveness: The layout must be fully responsive.
+
+        On desktop, it should be a two-column layout (slider on the left, text/CTA on the right).
+
+        On mobile devices (tablets and phones), the layout should stack vertically: the slider on top, followed by the text content and CTA button below it.
+
+    Header/Navigation:
+
+        Include a simple, clean navigation bar at the top with placeholder links for "Home", "Portfolio", "Gallery", and "How It Works".
+
+        On the far right of the navigation bar, include a "Login" button.
+
+Final Output
+
+Please provide the complete, self-contained code in three separate files: index.html, style.css, and script.js. Ensure the code is well-commented so it's easy to understand and modify later.

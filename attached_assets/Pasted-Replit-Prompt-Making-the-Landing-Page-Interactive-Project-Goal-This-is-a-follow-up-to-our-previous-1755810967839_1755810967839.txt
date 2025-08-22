@@ -1,0 +1,43 @@
+Replit Prompt: Making the Landing Page Interactive
+Project Goal
+
+This is a follow-up to our previous build. The goal is to add JavaScript functionality to the "Upload Image" button and the "Instant AI" button to create an interactive user experience, preparing the page for its final backend integration.
+Core Refinements and New Functionality
+
+    Implement the "Upload Image" Flow:
+
+        In index.html, add a hidden <input type="file" id="image-input" accept="image/*"> element.
+
+        In script.js, make the main "Upload Image" button trigger a click() event on this hidden file input.
+
+        When a user selects an image from the file dialog:
+
+            The automatic image carousel/slider must stop.
+
+            Use the FileReader API to read the selected image.
+
+            Update the "before" image in the slider to display the user's uploaded image.
+
+            Initially, set the "after" image to be the same as the user's uploaded image.
+
+            The "Instant AI" button in the pricing list should now become visually active and clickable.
+
+    Add Placeholder Functionality to the "Instant AI" Button:
+
+        In index.html, ensure the "Instant AI" button (or the container for that pricing option) has a unique ID, for example, instant-ai-btn.
+
+        In script.js, add a click event listener to this button. This button should initially be disabled or have its click events ignored until a user uploads an image.
+
+        When the "Instant AI" button is clicked:
+
+            Show a loading indicator over the "after" image area to signify processing.
+
+            Simulate an API call using setTimeout for about 2 seconds. You do not need to connect to a real backend yet.
+
+            After the timeout, simulate an enhancement by applying a CSS filter to the "after" image (e.g., filter: saturate(1.5) brightness(1.1);). This provides instant visual feedback.
+
+            Remove the loading indicator.
+
+Final Output
+
+Please provide the updated and complete code, reflecting these new interactive features, in the index.html and script.js files. Add comments to the new JavaScript code sections to explain the logic for the file upload and the simulated AI processing.

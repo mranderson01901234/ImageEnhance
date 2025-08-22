@@ -1,0 +1,93 @@
+# Replit Prompt — Expand Landing UI to Full-Viewport (UI-Only, No New Functionality)
+
+**Context**
+We already have a working landing layout: dark header, hero with a large before/after slider (carousel), and a right-side content panel with the tagline “Give your image a standing ovation” in Rethink Sans, Upload button, ratings, and three price cards. This task is **UI-only**. Do not add code for data, APIs, or behavior beyond what’s necessary to resize/reflow the layout.
+
+---
+
+## Objectives
+1) Use the **entire view page** on desktop and large screens while preserving the exact look and components.
+2) Keep the **same visual hierarchy and content**: header, hero (before/after carousel on the left, copy/CTA/pricing on the right), caption, and badges.
+3) Maintain the existing **dark theme** and typography (Rethink Sans for the tagline).
+
+---
+
+## Layout Requirements (Desktop ≥ 1280px)
+- The overall page should be **full-width** with safe gutters; avoid the previous narrow max-width container.
+- Target **content width**: approximately 90–94% of the viewport up to ultra-wide screens, with **outer gutters** of roughly 24–40px on each side to keep the content comfortable.
+- The **hero section** must occupy at least **80–88% of viewport height** on first load; avoid vertical wasted space.
+- Use a **two-column layout** in the hero:
+  - **Left column (≈ 65–70% width):** the before/after slider carousel.
+  - **Right column (≈ 30–35% width):** tagline block, Upload button, ratings, and three pricing cards stacked vertically.
+- The hero **card** should still have rounded corners and a soft drop shadow, but scaled up proportionally to fill the new width/height.
+- The **before/after image** must scale to the new size without distortion: keep aspect ratio, center-crop as needed, and avoid letterboxing. Ensure the compare handle and vertical divider scale appropriately (handle remains easily clickable).
+- Keep the **caption bubble** (“Color Graded with Instant AI”) pinned near the lower-left of the hero image, offset from edges so it does not collide with gutters.
+- The small **footer caption** under the hero (“Before & After shown using our Pro Touch-Up service.”) should remain centered beneath the hero image area and stay readable on wide screens.
+
+---
+
+## Layout Requirements (Tablet 768–1279px)
+- Maintain a **two-column layout** down to ~1024px; below that stack.
+- When two-column, reduce left column to around **60–65%** and right column to **35–40%**.
+- Ensure the Upload button and price cards remain visible without scrolling on landscape tablets.
+
+---
+
+## Layout Requirements (Mobile ≤ 767px)
+- **Stack vertically**: hero image block first (full-width), then the right-side content under it.
+- Preserve spacing and readable font sizes; avoid excessive paddings.
+- Keep handle size touch-friendly and caption bubble visible but not overlapping crucial image areas.
+
+---
+
+## Header & Navigation
+- Expand header to match full-width page and maintain the existing links (HOME, PORTFOLIO, GALLERY, HOW IT WORKS) and Login button.
+- Keep header height modest on desktop, with consistent horizontal padding that matches the page gutters.
+- On mobile, ensure the header collapses gracefully without cutting off content.
+
+---
+
+## Typography & Theme
+- Continue using **Rethink Sans** for the tagline and headings.
+- Maintain the current dark palette with neutral surfaces, gold star accent for ratings, and a white/light CTA button style.
+- Ensure sufficient contrast after scaling: text and icons remain legible against enlarged backgrounds.
+
+---
+
+## Spacing & Visual Polish
+- Maintain rounded corners and soft shadows on the hero card and price cards; scale radii subtly for the larger layout.
+- Keep consistent spacing between the right-side elements (tagline, paragraph, Upload button, ratings, price cards).
+- Ensure the price cards align visually to the right column and do not feel cramped; allow them to scale slightly larger on desktop to match the increased canvas.
+
+---
+
+## Interaction (UI-Only)
+- Do not change existing behavior of the before/after comparison or carousel timing; only ensure the controls scale and remain accessible.
+- Keep hover/focus states consistent with the current theme.
+- No new features, no new provider code, no API calls.
+
+---
+
+## Accessibility
+- Preserve alt text on images.
+- Ensure visible focus states remain after resizing.
+- Keep the compare handle keyboard-focusable if already supported; do not remove existing a11y benefits.
+
+---
+
+## Performance & Responsiveness
+- The expanded layout must remain smooth on resize with no layout shift/jank.
+- Images should scale responsively and remain sharp on high-DPI displays.
+- Avoid unnecessary reflows; this is a styling/layout task only.
+
+---
+
+## Acceptance Criteria
+- The landing page renders across desktop, tablet, and mobile using the **full viewport width** with appropriate gutters.
+- The hero section occupies **most of the viewport** on desktop while preserving the exact current content and style.
+- The left **before/after** carousel is larger and visually dominant; the right **tagline/CTA/pricing** panel uses the remaining width and remains vertically aligned and readable.
+- All text, buttons, rating stars, and price cards are visible without crowding, with consistent alignment and spacing.
+- No JavaScript functionality or data behavior is added or altered; this is purely a layout and style expansion.
+- No runtime overlay errors or console errors are introduced by the layout changes.
+
+**Build to these requirements only. Do not modify routes, installs, or any data-fetching code. Print a short summary of what was resized and which breakpoints were adjusted when complete.**

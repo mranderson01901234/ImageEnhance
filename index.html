@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Opera - AI Image Enhancement</title>
+
+        <!-- Google Fonts -->
+        <link
+            href="https://fonts.googleapis.com/css2?family=Rethink+Sans:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap"
+            rel="stylesheet"
+        />
+
+        <!-- CSS -->
+        <link rel="stylesheet" href="style.css" />
+    </head>
+    <body>
+        <!-- Navigation Header -->
+        <header class="navbar">
+            <div class="nav-container">
+                <div class="logo">opera</div>
+                <nav class="nav-links">
+                    <a href="#" class="nav-link active">HOME</a>
+                    <a href="#" class="nav-link">PORTFOLIO</a>
+                    <a href="#" class="nav-link">GALLERY</a>
+                    <a href="#" class="nav-link">HOW IT WORKS</a>
+                </nav>
+                <button class="login-btn">Login</button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-container">
+            <!-- Image Comparison Slider Section -->
+            <section class="slider-section">
+                <div class="image-comparison-container">
+                    <div class="comparison-slider" id="comparisonSlider">
+                        <!-- Before Image -->
+                        <div class="image-container before-image">
+                            <img
+                                id="beforeImg"
+                                src=""
+                                alt="Before enhancement"
+                            />
+                        </div>
+
+                        <!-- After Image -->
+                        <div class="image-container after-image">
+                            <img id="afterImg" src="" alt="After enhancement" />
+                            <!-- Loading indicator for AI processing -->
+                            <div class="loading-indicator" id="loading-indicator">
+                                <div class="loading-spinner"></div>
+                                <div class="loading-text">Processing with AI...</div>
+                                <p class="status-text" id="status-text">Preparing your image...</p>
+                            </div>
+                        </div>
+
+                        <!-- Draggable Divider -->
+                        <div class="divider" id="divider">
+                            <div class="divider-handle"></div>
+                        </div>
+                    </div>
+
+                    <!-- Image Enhancement Label -->
+                    <div class="enhancement-label">
+                        Color Graded with Instant AI
+                    </div>
+
+                    <!-- Before & After Labels -->
+                    <div class="image-labels">
+                        <span class="label-text"
+                            >Before & After shown using our Pro Touch-Up
+                            service.</span
+                        >
+                    </div>
+                </div>
+            </section>
+
+            <!-- Content Section -->
+            <section class="content-section">
+                <div class="content-container">
+                    <div class="tagline-container">
+                        <p class="tagline-prefix">GIVE YOUR IMAGE</p>
+                        <h1 class="main-tagline">A STANDING OVATION</h1>
+                    </div>
+
+                    <p class="sub-headline">
+                        Powered by deep-learning models, with a final curation
+                        by our professional editors.
+                    </p>
+
+                    <button class="upload-btn" id="upload-btn">Upload Image</button>
+                
+                <!-- Hidden file input for image upload -->
+                <input type="file" id="image-input" accept="image/*" style="display: none;">
+
+                    <!-- Rating and Features -->
+                    <div class="features-section">
+                        <div class="rating">
+                            <div class="stars">★★★★★</div>
+                            <span class="rating-text"
+                                >4.9/5 from 2,867 reviews</span
+                            >
+                        </div>
+
+                        <div class="service-options">
+                            <div class="service-option" id="instant-ai-btn">
+                                <div class="service-icon">📱</div>
+                                <div class="service-details">
+                                    <div class="service-name">Instant AI</div>
+                                    <div class="service-desc">
+                                        Unlimited AI photo enhancements
+                                    </div>
+                                    <div class="service-price">$7.99</div>
+                                </div>
+                            </div>
+
+                            <div class="service-option">
+                                <div class="service-icon">👑</div>
+                                <div class="service-details">
+                                    <div class="service-name">Pro Touch-Up</div>
+                                    <div class="service-desc">
+                                        Human editor + AI enhancement
+                                    </div>
+                                    <div class="service-price">$19.99</div>
+                                </div>
+                            </div>
+
+                            <div class="service-option">
+                                <div class="service-icon">💎</div>
+                                <div class="service-details">
+                                    <div class="service-name">
+                                        Concierge Print
+                                    </div>
+                                    <div class="service-desc">
+                                        Custom framing and delivery
+                                    </div>
+                                    <div class="service-price">$46.99+</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="features-list">
+                            <span class="feature">● Human editor</span>
+                            <span class="feature">● AI processing</span>
+                            <span class="feature">● Custom print service</span>
+                            <span class="feature">● 48-hour delivery</span>
+                            <span class="feature"
+                                >● Color correction included</span
+                            >
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- JavaScript -->
+        <script src="script.js"></script>
+    </body>
+</html>

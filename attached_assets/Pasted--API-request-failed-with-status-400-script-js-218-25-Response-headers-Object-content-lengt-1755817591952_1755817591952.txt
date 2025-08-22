@@ -1,0 +1,25 @@
+
+❌ API request failed with status: 400 script.js:218:25
+❌ Response headers: 
+Object { "content-length": "0" }
+script.js:219:25
+❌ Error response body: <empty string> script.js:224:29
+❌ Error response is not valid JSON script.js:234:29
+💥 Error processing image with RunPod API: Error: API request failed with status: 400 - 
+    processImageWithRunPod https://84cf0f9f-99fc-40d8-bf86-cbd0d7a6388d-00-32ss4eamlxiql.spock.replit.dev/script.js:237
+    handleInstantAiClick https://84cf0f9f-99fc-40d8-bf86-cbd0d7a6388d-00-32ss4eamlxiql.spock.replit.dev/script.js:152
+    init https://84cf0f9f-99fc-40d8-bf86-cbd0d7a6388d-00-32ss4eamlxiql.spock.replit.dev/script.js:45
+    InteractiveImageProcessor https://84cf0f9f-99fc-40d8-bf86-cbd0d7a6388d-00-32ss4eamlxiql.spock.replit.dev/script.js:35
+    <anonymous> https://84cf0f9f-99fc-40d8-bf86-cbd0d7a6388d-00-32ss4eamlxiql.spock.replit.dev/script.js:533
+    EventListener.handleEvent* https://84cf0f9f-99fc-40d8-bf86-cbd0d7a6388d-00-32ss4eamlxiql.spock.replit.dev/script.js:528
+script.js:273:21
+📋 Error details: 
+Object { message: "API request failed with status: 400 - ", stack: "processImageWithRunPod@https://84cf0f9f-99fc-40d8-bf86-cbd0d7a6388d-00-32ss4eamlxiql.spock.replit.dev/script.js:237:23\nasync*handleInstantAiClick@https://84cf0f9f-99fc-40d8-bf86-cbd0d7a6388d-00-32ss4eamlxiql.spock.replit.dev/script.js:152:14\nEventListener.handleEvent*init@https://84cf0f9f-99fc-40d8-bf86-cbd0d7a6388d-00-32ss4eamlxiql.spock.replit.dev/script.js:45:27\nInteractiveImageProcessor@https://84cf0f9f-99fc-40d8-bf86-cbd0d7a6388d-00-32ss4eamlxiql.spock.replit.dev/script.js:35:14\n@https://84cf0f9f-99fc-40d8-bf86-cbd0d7a6388d-00-32ss4eamlxiql.spock.replit.dev/script.js:533:34\nEventListener.handleEvent*@https://84cf0f9f-99fc-40d8-bf86-cbd0d7a6388d-00-32ss4eamlxiql.spock.replit.dev/script.js:528:10\n", type: "Error" }
+​
+message: "API request failed with status: 400 - "
+​
+stack: "processImageWithRunPod@https://84cf0f9f-99fc-40d8-bf86-cbd0d7a6388d-00-32ss4eamlxiql.spock.replit.dev/script.js:237:23\nasync*handleInstantAiClick@https://84cf0f9f-99fc-40d8-bf86-cbd0d7a6388d-00-32ss4eamlxiql.spock.replit.dev/script.js:152:14\nEventListener.handleEvent*init@https://84cf0f9f-99fc-40d8-bf86-cbd0d7a6388d-00-32ss4eamlxiql.spock.replit.dev/script.js:45:27\nInteractiveImageProcessor@https://84cf0f9f-99fc-40d8-bf86-cbd0d7a6388d-00-32ss4eamlxiql.spock.replit.dev/script.js:35:14\n@https://84cf0f9f-99fc-40d8-bf86-cbd0d7a6388d-00-32ss4eamlxiql.spock.replit.dev/script.js:533:34\nEventListener.handleEvent*@https://84cf0f9f-99fc-40d8-bf86-cbd0d7a6388d-00-32ss4eamlxiql.spock.replit.dev/script.js:528:10\n"
+​
+type: "Error"
+​
+<prototype>: Object { … }

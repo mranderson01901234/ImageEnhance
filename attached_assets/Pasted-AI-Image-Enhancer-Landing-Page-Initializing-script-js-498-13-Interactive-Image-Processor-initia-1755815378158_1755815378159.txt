@@ -1,0 +1,47 @@
+AI Image Enhancer Landing Page - Initializing... script.js:498:13
+Interactive Image Processor initialized script.js:47:17
+Application initialized successfully script.js:511:13
+Analytics Event: page_view 
+Object { page: "landing_page", timestamp: 1755815154704, userAgent: "Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0" }
+script.js:484:17
+GET
+https://84cf0f9f-99fc-40d8-bf86-cbd0d7a6388d-00-32ss4eamlxiql.spock.replit.dev/favicon.ico
+[HTTP/1.1 404 Not Found 0ms]
+
+Upload button clicked - triggering file input script.js:56:17
+Analytics Event: upload_button_clicked 
+Object {  }
+script.js:484:17
+File selected: test.jpg Size: 24939 bytes script.js:78:17
+Auto rotation stopped - user image uploaded script.js:318:21
+User image loaded successfully script.js:110:21
+Analytics Event: image_uploaded 
+Object { fileSize: 24939, fileType: "image/jpeg" }
+script.js:484:17
+Starting AI enhancement process... script.js:136:17
+📤 Preparing to send image to RunPod API... script.js:166:21
+📋 Image file details: 
+Object { name: "test.jpg", size: 24939, type: "image/jpeg" }
+script.js:167:21
+🚀 Making API request to RunPod endpoint: https://h926ogbmilgvql.api.runpod.ai/runsync script.js:176:21
+⏰ Starting request with 3-minute timeout... script.js:195:21
+Analytics Event: ai_enhancement_started 
+Object {  }
+script.js:484:17
+XHRPOST
+https://h926ogbmilgvql.api.runpod.ai/runsync
+[HTTP/2 400  120600ms]
+
+📨 Received response from RunPod API. Status: 400 script.js:200:21
+❌ API request failed with status: 400 script.js:203:25
+❌ Error response body: <empty string> script.js:205:25
+💥 Error processing image with RunPod API: Error: API request failed with status: 400 - 
+    processImageWithRunPod https://84cf0f9f-99fc-40d8-bf86-cbd0d7a6388d-00-32ss4eamlxiql.spock.replit.dev/script.js:206
+    handleInstantAiClick https://84cf0f9f-99fc-40d8-bf86-cbd0d7a6388d-00-32ss4eamlxiql.spock.replit.dev/script.js:150
+    init https://84cf0f9f-99fc-40d8-bf86-cbd0d7a6388d-00-32ss4eamlxiql.spock.replit.dev/script.js:45
+    InteractiveImageProcessor https://84cf0f9f-99fc-40d8-bf86-cbd0d7a6388d-00-32ss4eamlxiql.spock.replit.dev/script.js:35
+    <anonymous> https://84cf0f9f-99fc-40d8-bf86-cbd0d7a6388d-00-32ss4eamlxiql.spock.replit.dev/script.js:502
+    EventListener.handleEvent* https://84cf0f9f-99fc-40d8-bf86-cbd0d7a6388d-00-32ss4eamlxiql.spock.replit.dev/script.js:497
+script.js:242:21
+📋 Error details: 
+Object { message: "API request failed with status: 400 - ", stack: "processImageWithRunPod@https://84cf0f9f-99fc-40d8-bf86-cbd0d7a6388d-00-32ss4eamlxiql.spock.replit.dev/script.js:206:23\nasync*handleInstantAiClick@https://84cf0f9f-99fc-40d8-bf86-cbd0d7a6388d-00-32ss4eamlxiql.spock.replit.dev/script.js:150:14\nEventListener.handleEvent*init@https://84cf0f9f-99fc-40d8-bf86-cbd0d7a6388d-00-32ss4eamlxiql.spock.replit.dev/script.js:45:27\nInteractiveImageProcessor@https://84cf0f9f-99fc-40d8-bf86-cbd0d7a6388d-00-32ss4eamlxiql.spock.replit.dev/script.js:35:14\n@https://84cf0f9f-99fc-40d8-bf86-cbd0d7a6388d-00-32ss4eamlxiql.spock.replit.dev/script.js:502:34\nEventListener.handleEvent*@https://84cf0f9f-99fc-40d8-bf86-cbd0d7a6388d-00-32ss4eamlxiql.spock.replit.dev/script.js:497:10\n", type: "Error" }
