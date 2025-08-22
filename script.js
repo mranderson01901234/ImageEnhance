@@ -382,7 +382,7 @@ class InteractiveImageProcessor {
             });
             
             // Make the request through our proxy server to avoid CORS issues
-            const apiUrl = `/api/replicate/predictions`;
+            const apiUrl = `http://localhost:5001/api/replicate/predictions`;
             console.log('🌐 Making request through proxy to:', apiUrl);
             
             const response = await fetch(apiUrl, {
@@ -482,7 +482,7 @@ class InteractiveImageProcessor {
         
         while (attempts < maxAttempts) {
             try {
-                const response = await fetch(`/api/replicate/predictions/${predictionId}`);
+                const response = await fetch(`http://localhost:5001/api/replicate/predictions/${predictionId}`);
                 
                 if (!response.ok) {
                     throw new Error(`Failed to check prediction status: ${response.status}`);
