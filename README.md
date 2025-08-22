@@ -79,11 +79,30 @@ ImageEnhance/
 
 ### Backend Settings
 
-The backend can be configured in `backend/app.py`:
+The backend can be configured in `backend/config.py`:
 
-- **Port**: Default is 5000
-- **Model Type**: Choose between 'gan' and 'psnr'
+- **Port**: Default is 5001
+- **Replicate API**: Configure your Replicate API token
+- **Model Type**: Choose between different SCUNet configurations
 - **Image Processing**: Adjust quality and optimization parameters
+
+### Replicate Integration
+
+The application now supports Replicate deployment for enhanced AI processing:
+
+1. **Set Environment Variable**: 
+   ```bash
+   export REPLICATE_API_TOKEN="your_replicate_token_here"
+   ```
+
+2. **Start Backend**: 
+   ```bash
+   ./start_backend.sh
+   ```
+
+3. **Model Version**: Currently configured to use `mranderson01901234/my-scunet2point0`
+
+### Frontend Customization
 
 ### Frontend Customization
 
