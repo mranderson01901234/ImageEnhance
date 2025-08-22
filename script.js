@@ -34,7 +34,7 @@ class InteractiveImageProcessor {
         
         // Replicate deployment configuration
         this.replicateApiToken = process.env.REPLICATE_API_TOKEN || '';
-        this.deploymentId = 'mranderson01901234/scunet-fp16';
+        this.deploymentId = 'mranderson01901234/my-scunet2point0';
         this.modelType = 'real image denoising (FP16 Optimized)'; // Default model type
         
         // Available model options for SCUNet

@@ -28,7 +28,7 @@ app.get('/api/status', (req, res) => {
   res.json({
     status: 'operational',
     replicate: {
-      deployment: 'mranderson01901234/scunet-fp16',
+      deployment: 'mranderson01901234/my-scunet2point0',
       status: 'connected',
       model: 'FP16-optimized SCUNet'
     },
@@ -138,7 +138,7 @@ app.get('/', (req, res) => {
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Image Enhancement server running on port ${PORT}`);
-  console.log(`📱 FP16-optimized SCUNet model: mranderson01901234/scunet-fp16`);
+  console.log(`📱 FP16-optimized SCUNet model: mranderson01901234/my-scunet2point0`);
   console.log(`🔗 Health check: http://localhost:${PORT}/health`);
   console.log(`🌐 Open: http://localhost:${PORT}`);
 }); 
